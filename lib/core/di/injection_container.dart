@@ -5,7 +5,7 @@ import '../local_storage/hive_service.dart';
 import '../local_storage/prefs_service.dart';
 import '../services/notification_service.dart';
 import '../localization/language_cubit.dart';
-import '../../features/auth/data/auth_service.dart';
+import '../services/auth_service.dart';
 import '../../features/auth/data/profile_service.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/cart/presentation/cubit/cart_cubit.dart';

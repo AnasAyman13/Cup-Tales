@@ -8,6 +8,7 @@ import '../../features/checkout/presentation/pages/checkout_page.dart';
 import '../../features/checkout/presentation/pages/payment_success_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
+import '../../features/auth/presentation/pages/reset_password_page.dart';
 import '../../features/auth/presentation/pages/auth_gate.dart';
 
 class AppRouter {
@@ -21,6 +22,7 @@ class AppRouter {
   static const String cart = '/cart';
   static const String checkout = '/checkout';
   static const String paymentSuccess = '/payment-success';
+  static const String resetPassword = '/reset-password';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -45,6 +47,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const CheckoutPage());
       case paymentSuccess:
         return MaterialPageRoute(builder: (_) => const PaymentSuccessPage());
+      case resetPassword:
+        return MaterialPageRoute(builder: (_) => const ResetPasswordPage());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
