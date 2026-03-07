@@ -1,3 +1,4 @@
+import 'package:cup_tales/features/auth/presentation/pages/auth_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/theme/app_theme.dart';
@@ -8,7 +9,7 @@ import 'core/localization/language_state.dart';
 import 'core/localization/language_cubit.dart';
 import 'features/cart/presentation/cubit/cart_cubit.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
-import 'core/di/injection_container.dart' as di;
+import 'core/di/injection_container.dart';
 
 class CupTalesApp extends StatelessWidget {
   const CupTalesApp({super.key});
@@ -18,12 +19,12 @@ class CupTalesApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<LanguageCubit>(
-          create: (_) => di.sl<LanguageCubit>()..load(),
+          create: (_) => sl<LanguageCubit>()..load(),
         ),
         BlocProvider<AuthCubit>(
-          create: (_) => di.sl<AuthCubit>()..onAppStart(),
+          create: (_) => sl<AuthCubit>()..onAppStart(),
         ),
-        BlocProvider<CartCubit>(create: (_) => di.sl<CartCubit>()..loadCart()),
+        BlocProvider<CartCubit>(create: (_) => sl<CartCubit>()..loadCart()),
       ],
       child: BlocBuilder<LanguageCubit, LanguageState>(
         builder: (context, languageState) {
@@ -35,9 +36,16 @@ class CupTalesApp extends StatelessWidget {
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,
               locale: isArabic ? const Locale('ar') : const Locale('en'),
-              // darkTheme: AppTheme.darkTheme, // Can add later
               onGenerateRoute: AppRouter.generateRoute,
               initialRoute: AppRouter.splash,
+              onUnknownRoute: (settings) {
+                // If a route is unknown (like Supabase OAuth redirects /?code=...),
+                // redirect to AuthGate which handles auth state internally.
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (_) => const AuthGate(),
+                );
+              },
             ),
           );
         },

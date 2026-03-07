@@ -59,7 +59,7 @@ Future<void> init() async {
 
   // Admin
   // Cart
-  sl.registerFactory(() => CartCubit(sl()));
+  sl.registerFactory(() => CartCubit());
   // Checkout
   // Home
   // Notifications

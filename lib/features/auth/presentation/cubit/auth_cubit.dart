@@ -18,6 +18,7 @@ class AuthCubit extends Cubit<AuthState> {
     _initAuthStateListener();
   }
 
+  bool _isInitialStateHandled = false;
   StreamSubscription<supabase.AuthState>? _authSubscription;
 
   void _initAuthStateListener() {
@@ -26,22 +27,68 @@ class AuthCubit extends Cubit<AuthState> {
       final supabase.AuthChangeEvent event = data.event;
       final supabase.Session? session = data.session;
 
-      if (event == supabase.AuthChangeEvent.signedIn && session != null) {
+      if (true) {
+        // kDebugMode check implicit in prints usually, but let's be explicit if needed
+        print(
+            'AuthCubit: AuthStateChange - Event: $event, Session active: ${session != null}');
+      }
+
+      // Only handle initial session once through either onAppStart or listener
+      if (_isInitialStateHandled &&
+          event == supabase.AuthChangeEvent.initialSession) {
+        return;
+      }
+
+      if ((event == supabase.AuthChangeEvent.signedIn ||
+          event == supabase.AuthChangeEvent.initialSession)) {
+        if (session == null) {
+          if (!_isInitialStateHandled) {
+            _isInitialStateHandled = true;
+            emit(AuthUnauthenticated());
+          }
+          return;
+        }
+
+        _isInitialStateHandled = true;
+
         // Capture session and user
         final user = session.user;
+        if (true) print('AuthCubit: User signed in: ${user.email}');
 
         // Upsert user profile
-        await _authService.upsertUserProfile(
-          id: user.id,
-          email: user.email ?? '',
-          fullName: user.userMetadata?['full_name'] as String?,
-        );
+        try {
+          await _authService.upsertUserProfile(
+            id: user.id,
+            email: user.email ?? '',
+          );
+        } catch (e) {
+          if (true) print('AuthCubit: Profile upsert failed silently: $e');
+        }
 
         // Check role and emit authenticated
-        final role = await _profileService.getUserRole();
-        emit(AuthAuthenticated(isAdmin: role == 'admin'));
+        try {
+          final role = await _profileService.getUserRole();
+          if (true)
+            print(
+                'AuthCubit: Emitting AuthAuthenticated (Admin: ${role == 'admin'})');
+          emit(AuthAuthenticated(isAdmin: role == 'admin'));
+        } catch (e) {
+          if (true)
+            print(
+                'AuthCubit: Error fetching role, defaulting to non-admin: $e');
+          emit(const AuthAuthenticated(isAdmin: false));
+        }
       } else if (event == supabase.AuthChangeEvent.signedOut) {
+        _isInitialStateHandled = true;
+        if (true)
+          print('AuthCubit: User signed out, emitting AuthUnauthenticated');
         emit(AuthUnauthenticated());
+      } else if (event == supabase.AuthChangeEvent.passwordRecovery) {
+        _isInitialStateHandled = true;
+        if (true)
+          print(
+              'AuthCubit: Password recovery detected, emitting AuthPasswordRecovery');
+        emit(AuthPasswordRecovery());
       }
     });
   }
@@ -55,29 +102,41 @@ class AuthCubit extends Cubit<AuthState> {
   // ─── App Start Check ─────────────────────────────────────────────────────
 
   void onAppStart() async {
-    emit(AuthLoading());
-    try {
-      final session = _authService.currentSession;
-      if (session != null) {
-        final role = await _profileService.getUserRole();
-        emit(AuthAuthenticated(isAdmin: role == 'admin'));
-      } else {
+    // Rely on _initAuthStateListener to catch the initial session.
+    // We just emit loading here if we haven't handled anything yet.
+    if (!_isInitialStateHandled) {
+      emit(AuthLoading());
+    }
+
+    // Defensive timeout: if no state is handled after 3 seconds, assume unauthenticated
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!_isInitialStateHandled && state is AuthLoading) {
+        _isInitialStateHandled = true;
         emit(AuthUnauthenticated());
       }
-    } catch (_) {
-      emit(AuthUnauthenticated());
-    }
+    });
   }
 
   // ─── Sign In ─────────────────────────────────────────────────────────────
 
   Future<void> login(String email, String password) async {
+    // 1. Validate
+    if (email.trim().isEmpty || !email.contains('@')) {
+      emit(const AuthError('Please enter a valid email.'));
+      return;
+    }
+    if (password.length < 6) {
+      emit(const AuthError('Password must be at least 6 characters.'));
+      return;
+    }
+
     emit(AuthLoading());
     try {
       await _authService.signIn(email: email, password: password);
-      final role = await _profileService.getUserRole();
-      emit(AuthAuthenticated(isAdmin: role == 'admin'));
+      // Auth listener handles emission of AuthAuthenticated
+      if (true) print('AuthCubit: Sign-in successful, waiting for listener...');
     } catch (e) {
+      if (true) print('AuthCubit: Sign-in failed: $e');
       emit(AuthError(e.toString().replaceFirst('Exception: ', '')));
     }
   }
@@ -85,6 +144,20 @@ class AuthCubit extends Cubit<AuthState> {
   // ─── Sign Up ─────────────────────────────────────────────────────────────
 
   Future<void> register(String email, String password, String fullName) async {
+    // 1. Validate
+    if (fullName.trim().isEmpty) {
+      emit(const AuthError('Please enter your full name.'));
+      return;
+    }
+    if (email.trim().isEmpty || !email.contains('@')) {
+      emit(const AuthError('Please enter a valid email.'));
+      return;
+    }
+    if (password.length < 6) {
+      emit(const AuthError('Password must be at least 6 characters.'));
+      return;
+    }
+
     emit(AuthLoading());
     try {
       await _authService.signUp(
@@ -104,7 +177,7 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     try {
       await _authService.signInWithGoogle();
-      // Auth state will be handled by auto-login or auth listener upon redirect
+      // Auth listener handles the rest
     } catch (e) {
       emit(AuthError(e.toString().replaceFirst('Exception: ', '')));
     }

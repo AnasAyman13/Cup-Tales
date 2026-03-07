@@ -1,9 +1,7 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
-import '../../../../core/routing/app_router.dart';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -54,28 +52,27 @@ class _RegisterPageState extends State<RegisterPage> {
         resizeToAvoidBottomInset: true,
         body: BlocListener<AuthCubit, AuthState>(
           listener: (context, state) {
-            if (state is AuthAuthenticated) {
-              Navigator.pushNamedAndRemoveUntil(
-                  context, AppRouter.home, (route) => false);
-            } else if (state is AuthError) {
+            if (state is AuthError) {
               ScaffoldMessenger.of(context)
                   .showSnackBar(SnackBar(content: Text(state.message)));
             }
           },
           child: Stack(
             children: [
-              // ── Decorative glow blobs ─────────────────────────────────
-              Positioned(
-                top: -96,
-                left: -96,
-                child:
-                    _GlowBlob(size: 256, color: Colors.white.withOpacity(0.05)),
-              ),
-              Positioned(
-                bottom: -128,
-                right: -128,
-                child:
-                    _GlowBlob(size: 384, color: Colors.black.withOpacity(0.10)),
+              // ── Decorative background ────────────────────────────────
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        _kPrimary,
+                        _kPrimary.withBlue(100).withRed(20),
+                      ],
+                    ),
+                  ),
+                ),
               ),
 
               // ── Content ───────────────────────────────────────────────
@@ -570,21 +567,3 @@ class _GoogleLogoPainter extends CustomPainter {
 }
 
 // ─── Glow Blob ────────────────────────────────────────────────────────────────
-
-class _GlowBlob extends StatelessWidget {
-  final double size;
-  final Color color;
-  const _GlowBlob({required this.size, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ui.ImageFilter.blur(sigmaX: 48, sigmaY: 48),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      ),
-    );
-  }
-}

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'core/di/injection_container.dart' as di;
+import 'core/di/injection_container.dart';
 import 'core/local_storage/hive_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/config/supabase_config.dart';
@@ -15,13 +15,13 @@ void main() async {
   );
 
   // Initialize DI
-  await di.init();
+  await init();
 
   // Initialize Hive
-  await di.sl<HiveService>().init();
+  await sl<HiveService>().init();
 
   // Initialize Notifications
-  await di.sl<NotificationService>().init();
+  await sl<NotificationService>().init();
 
   runApp(const CupTalesApp());
 }
