@@ -1,9 +1,7 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
-import '../../../../core/routing/app_router.dart';
 import '../../../../core/localization/app_localizations.dart';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -50,16 +48,30 @@ class _RegisterPageState extends State<RegisterPage> {
       resizeToAvoidBottomInset: true,
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            Navigator.pushNamedAndRemoveUntil(
-                context, AppRouter.home, (route) => false);
-          } else if (state is AuthError) {
+          // AuthGate handles navigation on AuthAuthenticated.
+          // Only show errors here.
+          if (state is AuthError) {
             ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         child: Stack(
           children: [
+            // ── Gradient background (from auth-fixes) ────────────────
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _kPrimary,
+                      _kPrimary.withBlue(100).withRed(20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             // ── Decorative glow blobs ─────────────────────────────────
             Positioned(
               top: -96,
@@ -498,12 +510,12 @@ class _GlowBlob extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ui.ImageFilter.blur(sigmaX: 48, sigmaY: 48),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
       ),
     );
   }

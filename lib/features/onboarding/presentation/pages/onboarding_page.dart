@@ -90,7 +90,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: BlocListener<OnboardingCubit, OnboardingState>(
         listener: (context, state) {
           if (state is OnboardingCompleted) {
-            Navigator.pushReplacementNamed(context, AppRouter.home);
+            Navigator.pushReplacementNamed(context, AppRouter.register);
           }
         },
         child: Builder(builder: (context) {

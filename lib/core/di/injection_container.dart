@@ -23,8 +23,8 @@ import '../../features/products/presentation/cubit/products_cubit.dart';
 
 final sl = GetIt.instance;
 
-/// Completer that resolves once the async init (SharedPreferences) is done.
-/// SplashCubit awaits this before reading any pref values.
+/// Completer that resolves once the async init (SharedPreferences + Supabase) is done.
+/// SplashCubit and AuthCubit await this before reading any pref/auth values.
 final _readyCompleter = Completer<void>();
 Future<void> get appReady => _readyCompleter.future;
 
@@ -54,7 +54,7 @@ void registerSync() {
   sl.registerFactory(() => ProductsCubit(sl()));
 
   // Cart
-  sl.registerFactory(() => CartCubit(sl()));
+  sl.registerFactory(() => CartCubit());
 }
 
 /// Step 2 — load SharedPreferences and signal readiness.

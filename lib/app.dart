@@ -10,6 +10,7 @@ import 'core/localization/language_cubit.dart';
 import 'core/localization/app_localizations.dart';
 import 'features/cart/presentation/cubit/cart_cubit.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
+import 'features/auth/presentation/pages/auth_gate.dart';
 import 'core/di/injection_container.dart' as di;
 
 // Cached theme — never rebuilt, computed once
@@ -22,17 +23,13 @@ class CupTalesApp extends StatefulWidget {
 }
 
 class _CupTalesAppState extends State<CupTalesApp> {
-  // ── Cubits — created synchronously (constructors are cheap) ─────────────────
+  // Cubits — created synchronously (constructors are cheap).
   // They defer all I/O internally via di.appReady, so construction is instant.
   late final LanguageCubit _languageCubit = di.sl<LanguageCubit>();
   late final AuthCubit _authCubit = di.sl<AuthCubit>();
   late final CartCubit _cartCubit = di.sl<CartCubit>();
 
-  // ── Locale state ─────────────────────────────────────────────────────────────
   Locale _locale = const Locale('en');
-
-  // ── Frame 1 = no localization delegates (expensive).
-  //    Frame 2 = full delegates loaded in the background.
   bool _locDelegatesReady = false;
 
   @override
@@ -76,11 +73,9 @@ class _CupTalesAppState extends State<CupTalesApp> {
   Widget build(BuildContext context) {
     debugPrint('[App] build  locReady=$_locDelegatesReady');
 
-    // ── IMPORTANT: The widget tree structure is IDENTICAL on frames 1 and 2+.
-    // Only the `localizationsDelegates` list changes — MaterialApp is always
-    // the same widget type in the same position, so its element is never
-    // recreated and the Navigator is never replaced. SplashPage initState
-    // fires exactly once.
+    // IMPORTANT: Widget tree structure is IDENTICAL on frames 1 and 2+.
+    // Only `localizationsDelegates` changes — MaterialApp element is never
+    // recreated, Navigator is never replaced, SplashPage.initState fires once.
     return MultiBlocProvider(
       providers: [
         BlocProvider<LanguageCubit>.value(value: _languageCubit),
@@ -106,6 +101,18 @@ class _CupTalesAppState extends State<CupTalesApp> {
         supportedLocales: const [Locale('en', ''), Locale('ar', '')],
         onGenerateRoute: AppRouter.generateRoute,
         initialRoute: AppRouter.splash,
+
+        // Handle unknown routes (e.g. Supabase OAuth callback /?code=...)
+        // by routing to AuthGate which picks up the session from the stream.
+        onUnknownRoute: (settings) {
+          if (kDebugMode) {
+            debugPrint('[Router] Unknown route: ${settings.name} → AuthGate');
+          }
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) => const AuthGate(),
+          );
+        },
       ),
     );
   }

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/supabase_config.dart';
 
 class AuthService {
   // Lazy getter — Supabase.instance is only accessed when a method is called,
@@ -67,22 +69,25 @@ class AuthService {
     }
   }
 
-  // ─── Google Sign In ───────────────────────────────────────────────────────
+  // ─── Google Sign In (Native) ──────────────────────────────────────────────
 
   Future<void> signInWithGoogle() async {
     try {
+      if (kDebugMode) print('AuthService: Starting Google OAuth');
+
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: 'io.supabase.flutter://login-callback/',
-        queryParams: {'prompt': 'select_account'},
       );
     } on AuthException catch (e) {
+      if (kDebugMode)
+        print('AuthService: AuthException during Google OAuth: ${e.message}');
       throw Exception(_parseAuthError(e.message));
     } catch (e) {
-      throw Exception('Google sign in failed. Please try again.');
+      debugPrint('AuthService: Unexpected error during Google OAuth: $e');
+      throw Exception('Google login error: ${e.toString()}');
     }
   }
-
   // ─── Reset Password ───────────────────────────────────────────────────────
 
   Future<void> resetPassword(String email) async {
@@ -127,18 +132,15 @@ class AuthService {
   Future<void> upsertUserProfile({
     required String id,
     required String email,
-    String? fullName,
   }) async {
     try {
       await _client.from('users').upsert({
         'id': id,
         'email': email,
-        if (fullName != null) 'full_name': fullName,
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      // Ignore upsert errors as they shouldn't block auth
-      print('Upsert user error: $e');
+      debugPrint('AuthService: Profile upsert failed: $e');
     }
   }
 
@@ -154,6 +156,15 @@ class AuthService {
     }
     if (lower.contains('user already registered')) {
       return 'An account with this email already exists.';
+    }
+    if (lower.contains('id token')) {
+      return 'Google Sign-In configuration error: Invalid ID Token.';
+    }
+    if (lower.contains('audience')) {
+      return 'Google Sign-In configuration error: Audience mismatch. (Check Web Client ID)';
+    }
+    if (lower.contains('provider is not enabled')) {
+      return 'Google Sign-In is not enabled in Supabase dashboard.';
     }
     return message;
   }

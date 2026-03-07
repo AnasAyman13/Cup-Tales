@@ -30,57 +30,61 @@ class AppRouter {
   static const String notifications = '/notifications';
   static const String privacyPolicy = '/privacy-policy';
 
-  static Route<dynamic> generateRoute(RouteSettings settings) {
+  static Route<dynamic>? generateRoute(RouteSettings settings) {
+    final routeName = settings.name ?? '';
+
+    // Handle Supabase OAuth callback deep-links (e.g. /?code=...)
+    // Route to AuthGate which picks up the new session from the auth stream.
+    if (routeName.contains('code=')) {
+      return MaterialPageRoute(builder: (_) => const AuthGate());
+    }
+
     switch (settings.name) {
       case splash:
         return MaterialPageRoute(builder: (_) => const SplashPage());
+
       case onboarding:
         return MaterialPageRoute(builder: (_) => const OnboardingPage());
+
       case login:
         return MaterialPageRoute(builder: (_) => const LoginPage());
+
       case register:
         return MaterialPageRoute(builder: (_) => const RegisterPage());
+
       case home:
         return MaterialPageRoute(builder: (_) => const AuthGate());
+
       case productDetails:
         final product = settings.arguments as ProductEntity;
         return MaterialPageRoute(
           builder: (_) => ProductDetailsPage(product: product),
         );
+
       case cart:
         return MaterialPageRoute(builder: (_) => const CartPage());
+
       case checkout:
         return MaterialPageRoute(builder: (_) => const CheckoutPage());
+
       case paymentSuccess:
         return MaterialPageRoute(builder: (_) => const PaymentSuccessPage());
+
       case resetPassword:
         return MaterialPageRoute(builder: (_) => const ResetPasswordPage());
+
       case personalInfo:
         return MaterialPageRoute(builder: (_) => const PersonalInfoPage());
+
       case notifications:
         return MaterialPageRoute(
             builder: (_) => const NotificationsSettingsPage());
+
       case privacyPolicy:
         return MaterialPageRoute(builder: (_) => const PrivacyPolicyPage());
+
       default:
-        return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Center(child: Text('No route defined for ${settings.name}')),
-          ),
-        );
+        return null; // Triggers onUnknownRoute in MaterialApp
     }
-  }
-}
-
-class _MockPage extends StatelessWidget {
-  final String title;
-  const _MockPage(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(child: Text(title)),
-    );
   }
 }
