@@ -30,7 +30,6 @@ class _CupTalesAppState extends State<CupTalesApp> {
   late final CartCubit _cartCubit = di.sl<CartCubit>();
 
   Locale _locale = const Locale('en');
-  bool _locDelegatesReady = false;
 
   @override
   void initState() {
@@ -52,13 +51,6 @@ class _CupTalesAppState extends State<CupTalesApp> {
         });
       }
     });
-
-    // After frame 1 is on screen: enable localization delegates.
-    // The widget TREE STRUCTURE does not change — only the delegates list.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      debugPrint('[App] postFrameCallback → enabling localization');
-      if (mounted) setState(() => _locDelegatesReady = true);
-    });
   }
 
   @override
@@ -71,11 +63,6 @@ class _CupTalesAppState extends State<CupTalesApp> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[App] build  locReady=$_locDelegatesReady');
-
-    // IMPORTANT: Widget tree structure is IDENTICAL on frames 1 and 2+.
-    // Only `localizationsDelegates` changes — MaterialApp element is never
-    // recreated, Navigator is never replaced, SplashPage.initState fires once.
     return MultiBlocProvider(
       providers: [
         BlocProvider<LanguageCubit>.value(value: _languageCubit),
@@ -87,23 +74,15 @@ class _CupTalesAppState extends State<CupTalesApp> {
         debugShowCheckedModeBanner: false,
         theme: _cachedTheme,
         locale: _locale,
-
-        // Frame 1: null delegates = no locale loading = cheap.
-        // Frame 2+: full delegates added after first frame is already on screen.
-        localizationsDelegates: _locDelegatesReady
-            ? const [
-                AppLocalizationsDelegate(),
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ]
-            : null,
+        localizationsDelegates: const [
+          AppLocalizationsDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         supportedLocales: const [Locale('en', ''), Locale('ar', '')],
         onGenerateRoute: AppRouter.generateRoute,
         initialRoute: AppRouter.splash,
-
-        // Handle unknown routes (e.g. Supabase OAuth callback /?code=...)
-        // by routing to AuthGate which picks up the session from the stream.
         onUnknownRoute: (settings) {
           if (kDebugMode) {
             debugPrint('[Router] Unknown route: ${settings.name} → AuthGate');

@@ -4,6 +4,9 @@ import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/language_cubit.dart';
+import '../../../../core/localization/language_state.dart';
+import '../../../../core/localization/app_language.dart';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -97,9 +100,18 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       // ── Top: Language toggle ──────────────────────
-                      const Padding(
-                        padding: EdgeInsets.only(top: 12),
-                        // The global app language toggle remains inside Profile or Navbar.
+                      // ── Language toggle ─────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: BlocBuilder<LanguageCubit, LanguageState>(
+                            builder: (context, langState) {
+                              final isEn = langState.language == AppLanguage.en;
+                              return _LangToggle(isEn: isEn);
+                            },
+                          ),
+                        ),
                       ),
 
                       // ── Logo + headline ────────────────────────────
@@ -536,6 +548,71 @@ class _GlowBlob extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: color,
+      ),
+    );
+  }
+}
+
+// ─── Language Toggle ──────────────────────────────────────────────────────────
+
+class _LangToggle extends StatelessWidget {
+  final bool isEn;
+  const _LangToggle({required this.isEn});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      padding: const EdgeInsets.all(3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Pill(
+            label: 'EN',
+            active: isEn,
+            onTap: () =>
+                context.read<LanguageCubit>().setLanguage(AppLanguage.en),
+          ),
+          _Pill(
+            label: 'AR',
+            active: !isEn,
+            onTap: () =>
+                context.read<LanguageCubit>().setLanguage(AppLanguage.ar),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _Pill({required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: active ? _kPrimary : Colors.white70,
+          ),
+        ),
       ),
     );
   }

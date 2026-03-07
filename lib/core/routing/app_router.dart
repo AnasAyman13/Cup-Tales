@@ -31,16 +31,20 @@ class AppRouter {
   static const String privacyPolicy = '/privacy-policy';
 
   static Route<dynamic>? generateRoute(RouteSettings settings) {
+    debugPrint('\n[AppRouter] generateRoute -> ${settings.name}');
     final routeName = settings.name ?? '';
 
     // Handle Supabase OAuth callback deep-links (e.g. /?code=...)
     // Route to AuthGate which picks up the new session from the auth stream.
     if (routeName.contains('code=')) {
+      debugPrint(
+          '[AppRouter] Caught Supabase OAuth Deep Link! Yielding AuthGate.');
       return MaterialPageRoute(builder: (_) => const AuthGate());
     }
 
     switch (settings.name) {
       case splash:
+        debugPrint('[AppRouter] Yielding SplashPage');
         return MaterialPageRoute(builder: (_) => const SplashPage());
 
       case onboarding:
