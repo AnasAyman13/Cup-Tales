@@ -14,7 +14,7 @@ const kSlate800 = Color(0xFF1E293B);
 const kSlate500 = Color(0xFF64748B);
 const kSlate300 = Color(0xFFCBD5E1);
 const kSlate100 = Color(0xFFF1F5F9);
-const kSlate50  = Color(0xFFF8FAFC);
+const kSlate50 = Color(0xFFF8FAFC);
 
 // ─── Onboarding Data ────────────────────────────────────────────────────────
 
@@ -292,7 +292,8 @@ class _CoffeeHeroState extends State<_CoffeeHero>
 class _CoffeeHeroCupPainter extends CustomPainter {
   final AnimationController controller;
 
-  _CoffeeHeroCupPainter({required this.controller}) : super(repaint: controller);
+  _CoffeeHeroCupPainter({required this.controller})
+      : super(repaint: controller);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -332,7 +333,8 @@ class _CoffeeHeroCupPainter extends CustomPainter {
     bodyPath.lineTo(4 * s, 13 * s);
     bodyPath.cubicTo(4 * s, 16.314 * s, 6.686 * s, 19 * s, 10 * s, 19 * s);
     bodyPath.lineTo(11.5 * s, 19 * s);
-    bodyPath.cubicTo(14.814 * s, 19 * s, 17.5 * s, 16.314 * s, 17.5 * s, 13 * s);
+    bodyPath.cubicTo(
+        14.814 * s, 19 * s, 17.5 * s, 16.314 * s, 17.5 * s, 13 * s);
     bodyPath.lineTo(17.5 * s, 12 * s);
     bodyPath.lineTo(18.5 * s, 12 * s);
     bodyPath.cubicTo(20.433 * s, 12 * s, 22 * s, 10.433 * s, 22 * s, 8.5 * s);
@@ -343,7 +345,8 @@ class _CoffeeHeroCupPainter extends CustomPainter {
     bodyPath.moveTo(6 * s, 6 * s);
     bodyPath.lineTo(16 * s, 6 * s);
     bodyPath.lineTo(16 * s, 13 * s);
-    bodyPath.cubicTo(16 * s, 15.485 * s, 13.985 * s, 17.5 * s, 11.5 * s, 17.5 * s);
+    bodyPath.cubicTo(
+        16 * s, 15.485 * s, 13.985 * s, 17.5 * s, 11.5 * s, 17.5 * s);
     bodyPath.lineTo(10 * s, 17.5 * s);
     bodyPath.cubicTo(7.515 * s, 17.5 * s, 5.5 * s, 15.485 * s, 5.5 * s, 13 * s);
     bodyPath.lineTo(5.5 * s, 6 * s);
@@ -374,8 +377,8 @@ class _CoffeeHeroCupPainter extends CustomPainter {
     final phase = ((t - delay) % 1.0 + 1.0) % 1.0;
     final sine = math.sin(phase * math.pi);
     return Offset(
-      0.4 + 0.6 * sine,    // opacity 0.4 → 1.0
-      -8 * sine,            // float up 8 units
+      0.4 + 0.6 * sine, // opacity 0.4 → 1.0
+      -8 * sine, // float up 8 units
     );
   }
 
@@ -670,24 +673,24 @@ class _PhoneMockup extends StatelessWidget {
                               children: [
                                 _MenuItem(
                                   icon: Icons.coffee,
-                                  label: 'Classic Latte',
-                                  price: '\$4.50',
+                                  label: 'Latte',
+                                  price: '4.50 EGP',
                                   selected: false,
                                 ),
                                 SizedBox(height: 6),
                                 _MenuItem(
-                                  icon: Icons.local_cafe,
-                                  label: 'Iced Mocha',
-                                  price: '\$5.25',
+                                  icon: Icons.local_drink,
+                                  label: 'Mango Smoothie',
+                                  price: '5.25 EGP',
                                   selected: true,
                                 ),
                                 SizedBox(height: 6),
                                 Opacity(
                                   opacity: 0.55,
                                   child: _MenuItem(
-                                    icon: Icons.bakery_dining,
-                                    label: 'Croissant',
-                                    price: '\$3.75',
+                                    icon: Icons.icecream,
+                                    label: 'Chocolate Milkshake',
+                                    price: '3.75 EGP',
                                     selected: false,
                                   ),
                                 ),
@@ -764,8 +767,8 @@ class _MenuItem extends StatelessWidget {
                   : kPrimary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon,
-                size: 16, color: selected ? Colors.white : kPrimary),
+            child:
+                Icon(icon, size: 16, color: selected ? Colors.white : kPrimary),
           ),
           const SizedBox(width: 8),
           // Labels

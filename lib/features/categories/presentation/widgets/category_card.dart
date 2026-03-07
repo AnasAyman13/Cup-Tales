@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/localization/pick_name.dart';
-import '../../../../core/localization/app_language.dart';
-import '../../../../core/localization/language_state.dart';
-import '../../../../core/localization/language_cubit.dart';
 import '../../../../core/config/supabase_config.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/category_entity.dart';
 
 class CategoryCard extends StatelessWidget {
@@ -41,9 +37,8 @@ class CategoryCard extends StatelessWidget {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : Colors.transparent,
+                      color:
+                          isSelected ? AppColors.primary : Colors.transparent,
                       width: 2,
                     ),
                     boxShadow: [
@@ -91,28 +86,19 @@ class CategoryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              BlocBuilder<LanguageCubit, LanguageState>(
-                builder: (context, languageState) {
-                  final isArabic = languageState.language == AppLanguage.ar;
-                  final displayName = pickName(
-                    en: category.name,
-                    ar: category.nameAr,
-                    isArabic: isArabic,
-                  );
-                  return Text(
-                    displayName,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: isSelected ? AppColors.primary : Colors.black87,
-                    ),
-                  );
-                },
+              Text(
+                context.tr(
+                  category.name,
+                  category.nameAr,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? AppColors.primary : Colors.black87,
+                ),
               ),
             ],
           ),

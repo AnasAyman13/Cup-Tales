@@ -4,6 +4,7 @@ import '../../../categories/presentation/cubit/categories_cubit.dart';
 import '../../../categories/presentation/cubit/categories_state.dart';
 import '../cubit/products_cubit.dart';
 import '../cubit/products_state.dart';
+import '../../../../core/localization/app_localizations.dart';
 import 'product_grid_card.dart';
 
 class ProductsSection extends StatelessWidget {
@@ -16,8 +17,8 @@ class ProductsSection extends StatelessWidget {
         if (catState is CategoriesLoaded &&
             catState.selectedCategoryId != null) {
           context.read<ProductsCubit>().fetchProducts(
-            catState.selectedCategoryId!,
-          );
+                catState.selectedCategoryId!,
+              );
         }
       },
       child: BlocBuilder<ProductsCubit, ProductsState>(
@@ -26,10 +27,11 @@ class ProductsSection extends StatelessWidget {
             return _buildShimmerGrid();
           } else if (state is ProductsLoaded) {
             if (state.products.isEmpty) {
-              return const Center(
+              return Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: Text('No products found for this category.'),
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(context.tr('No products found for this category.',
+                      'لم يتم العثور على منتجات في هذا الصنف.')),
                 ),
               );
             }
@@ -55,7 +57,7 @@ class ProductsSection extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      'Error: ${state.message}',
+                      '${context.loc.error}: ${state.message}',
                       style: const TextStyle(color: Colors.red),
                     ),
                   ],

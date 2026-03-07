@@ -7,7 +7,9 @@ class ProductEntity extends Equatable {
   final String categoryId;
   final String description;
   final String imageUrl;
-  final double basePrice;
+  final double? priceS;
+  final double? priceM;
+  final double? priceL;
 
   const ProductEntity({
     required this.id,
@@ -16,17 +18,24 @@ class ProductEntity extends Equatable {
     required this.categoryId,
     required this.description,
     required this.imageUrl,
-    required this.basePrice,
+    this.priceS,
+    this.priceM,
+    this.priceL,
   });
+
+  // Helper to safely get the "starting" price or base price
+  double get basePrice => priceS ?? priceM ?? priceL ?? 0.0;
 
   @override
   List<Object?> get props => [
-    id,
-    name,
-    nameAr,
-    categoryId,
-    description,
-    imageUrl,
-    basePrice,
-  ];
+        id,
+        name,
+        nameAr,
+        categoryId,
+        description,
+        imageUrl,
+        priceS,
+        priceM,
+        priceL,
+      ];
 }

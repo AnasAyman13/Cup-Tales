@@ -1,7 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  final SupabaseClient _client = Supabase.instance.client;
+  // Lazy getter — Supabase.instance is only accessed when a method is called,
+  // which is always after Supabase.initialize() has completed via di.appReady.
+  SupabaseClient get _client => Supabase.instance.client;
 
   // ─── Getters ─────────────────────────────────────────────────────────────
 

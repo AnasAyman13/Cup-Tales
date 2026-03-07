@@ -3,47 +3,399 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/app_language.dart';
 import '../../../../core/localization/language_cubit.dart';
 import '../../../../core/localization/language_state.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/routing/app_router.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+    final userName =
+        user?.userMetadata?['full_name'] as String? ?? 'Cup Tales User';
+    final userEmail = user?.email ?? 'No email available';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          const Text(
-            'Language / اللغة',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+            onPressed: () => Navigator.pop(context),
           ),
-          const SizedBox(height: 10),
-          BlocBuilder<LanguageCubit, LanguageState>(
-            builder: (context, state) {
-              return Column(
+        ),
+        title: Text(
+          context.loc.cupTalesProfile,
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 120), // Avoid nav bar overlap
+        child: Column(
+          children: [
+            // Account Summary Section
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
                 children: [
-                  RadioListTile<AppLanguage>(
-                    title: const Text('English'),
-                    value: AppLanguage.en,
-                    groupValue: state.language,
-                    onChanged: (AppLanguage? language) {
-                      if (language != null) {
-                        context.read<LanguageCubit>().setLanguage(language);
-                      }
-                    },
+                  Text(
+                    userName,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  RadioListTile<AppLanguage>(
-                    title: const Text('العربية'),
-                    value: AppLanguage.ar,
-                    groupValue: state.language,
-                    onChanged: (AppLanguage? language) {
-                      if (language != null) {
-                        context.read<LanguageCubit>().setLanguage(language);
-                      }
-                    },
+                  const SizedBox(height: 4),
+                  Text(
+                    userEmail,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade500,
+                    ),
                   ),
                 ],
+              ),
+            ),
+
+            // Settings List
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SectionHeader(title: context.loc.accountSettings),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.grey.shade100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _SettingsTile(
+                          icon: Icons.person,
+                          title: context.loc.personalInfo,
+                          subtitle: context.loc.personalInfoSubtitle,
+                          onTap: () {
+                            Navigator.pushNamed(
+                                context, AppRouter.personalInfo);
+                          },
+                        ),
+                        const _Divider(),
+                        _SettingsTile(
+                          icon: Icons.notifications,
+                          title: context.loc.notifications,
+                          subtitle: context.loc.notificationsSubtitle,
+                          onTap: () {
+                            Navigator.pushNamed(
+                                context, AppRouter.notifications);
+                          },
+                        ),
+                        const _Divider(),
+                        const _LanguageTile(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _SectionHeader(title: context.loc.support),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.grey.shade100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _SettingsTile(
+                          icon: Icons.shield,
+                          title: context.loc.privacyPolicy,
+                          onTap: () {
+                            Navigator.pushNamed(
+                                context, AppRouter.privacyPolicy);
+                          },
+                        ),
+                        const _Divider(),
+                        _SettingsTile(
+                          icon: Icons.logout,
+                          title: context.loc.logout,
+                          titleColor: Colors.red.shade500,
+                          iconBackgroundColor: Colors.red.shade50,
+                          iconColor: Colors.red.shade500,
+                          showChevron: false,
+                          onTap: () async {
+                            await context.read<AuthCubit>().logout();
+                            if (context.mounted) {
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                AppRouter.login,
+                                (route) => false,
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// StatCard removed
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, bottom: 12),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey.shade400,
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: Colors.grey.shade50,
+      indent: 16,
+      endIndent: 16,
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Color? titleColor;
+  final Color? iconBackgroundColor;
+  final Color? iconColor;
+  final bool showChevron;
+  final VoidCallback onTap;
+
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.titleColor,
+    this.iconBackgroundColor,
+    this.iconColor,
+    this.showChevron = true,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveTitleColor = titleColor ?? AppColors.primary;
+    final effectiveIconBgColor = iconBackgroundColor ?? AppColors.primary;
+    final effectiveIconColor = iconColor ?? Colors.white;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: effectiveIconBgColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: effectiveIconColor, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: effectiveTitleColor,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (showChevron)
+              Icon(Icons.chevron_right, color: Colors.grey.shade300),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageTile extends StatelessWidget {
+  const _LanguageTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.translate, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.loc.appLanguage,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                BlocBuilder<LanguageCubit, LanguageState>(
+                  builder: (context, state) {
+                    final isEn = state.language == AppLanguage.en;
+                    return Text(
+                      isEn
+                          ? context.loc.englishSelected
+                          : context.loc.arabicSelected,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade400,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          BlocBuilder<LanguageCubit, LanguageState>(
+            builder: (context, state) {
+              final isEn = state.language == AppLanguage.en;
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () => context
+                          .read<LanguageCubit>()
+                          .setLanguage(AppLanguage.en),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isEn ? AppColors.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'EN',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isEn ? Colors.white : Colors.grey.shade400,
+                          ),
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => context
+                          .read<LanguageCubit>()
+                          .setLanguage(AppLanguage.ar),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: !isEn ? AppColors.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'AR',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: !isEn ? Colors.white : Colors.grey.shade400,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
           ),

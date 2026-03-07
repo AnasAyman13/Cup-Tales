@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -25,7 +26,6 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscure = true;
-  bool _isArabic = false;
 
   @override
   void dispose() {
@@ -41,303 +41,288 @@ class _LoginPageState extends State<LoginPage> {
         );
   }
 
-  String _t(String en, String ar) => _isArabic ? ar : en;
-
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: _isArabic ? TextDirection.rtl : TextDirection.ltr,
-      child: Scaffold(
-        backgroundColor: _kPrimary,
-        resizeToAvoidBottomInset: true,
-        body: BlocListener<AuthCubit, AuthState>(
-          listener: (context, state) {
-            if (state is AuthAuthenticated) {
-              Navigator.pushReplacementNamed(context, AppRouter.home);
-            } else if (state is AuthError) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(state.message)));
-            }
-          },
-          child: Stack(
-            children: [
-              // ── Decorative glow blobs ─────────────────────────────────
-              Positioned(
-                top: -96,
-                left: -96,
-                child:
-                    _GlowBlob(size: 256, color: Colors.white.withOpacity(0.05)),
-              ),
-              Positioned(
-                bottom: -128,
-                right: -128,
-                child:
-                    _GlowBlob(size: 384, color: Colors.black.withOpacity(0.10)),
-              ),
+    return Scaffold(
+      backgroundColor: _kPrimary,
+      resizeToAvoidBottomInset: true,
+      body: BlocListener<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthAuthenticated) {
+            Navigator.pushReplacementNamed(context, AppRouter.home);
+          } else if (state is AuthError) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(state.message)));
+          }
+        },
+        child: Stack(
+          children: [
+            // ── Decorative glow blobs ─────────────────────────────────
+            Positioned(
+              top: -96,
+              left: -96,
+              child:
+                  _GlowBlob(size: 256, color: Colors.white.withOpacity(0.05)),
+            ),
+            Positioned(
+              bottom: -128,
+              right: -128,
+              child:
+                  _GlowBlob(size: 384, color: Colors.black.withOpacity(0.10)),
+            ),
 
-              // ── Content ───────────────────────────────────────────────
-              SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height -
-                        MediaQuery.of(context).padding.top -
-                        MediaQuery.of(context).padding.bottom,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // ── Top: Language toggle ──────────────────────
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: _LangToggle(
-                              isArabic: _isArabic,
-                              onToggle: () =>
-                                  setState(() => _isArabic = !_isArabic),
+            // ── Content ───────────────────────────────────────────────
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // ── Top: Language toggle ──────────────────────
+                      const Padding(
+                        padding: EdgeInsets.only(top: 12),
+                        // The global app language toggle remains inside Profile or Navbar.
+                      ),
+
+                      // ── Logo + headline ────────────────────────────
+                      Column(
+                        children: [
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.25),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: Image.asset(
+                                'assets/images/logo/logo.png',
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 28),
+                          Text(
+                            context.tr('Welcome Back', 'مرحباً بعودتك'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 36,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            context.tr('Please sign in to your account',
+                                'من فضلك سجّل دخولك'),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
 
-                        // ── Logo + headline ────────────────────────────
-                        Column(
+                      // ── Form ──────────────────────────────────────
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _label(context.loc.email),
+                          const SizedBox(height: 8),
+                          _InputField(
+                            controller: _emailController,
+                            hint: context.tr(
+                                'Enter your email', 'أدخل بريدك الإلكتروني'),
+                            keyboardType: TextInputType.emailAddress,
+                            isArabic: context.isArabic,
+                          ),
+                          const SizedBox(height: 22),
+                          _label(context.loc.password),
+                          const SizedBox(height: 8),
+                          _InputField(
+                            controller: _passwordController,
+                            hint: context.tr(
+                                'Enter your password', 'أدخل كلمة المرور'),
+                            obscure: _obscure,
+                            isArabic: context.isArabic,
+                            suffix: GestureDetector(
+                              onTap: () => setState(() => _obscure = !_obscure),
+                              child: Icon(
+                                _obscure
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: _kSlate400,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: GestureDetector(
+                              onTap: () {
+                                if (_emailController.text.isNotEmpty) {
+                                  context
+                                      .read<AuthCubit>()
+                                      .forgotPassword(_emailController.text);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(context.tr(
+                                            'Please enter your email first',
+                                            'يرجى إدخال البريد الإلكتروني أولاً'))),
+                                  );
+                                }
+                              },
+                              child: Text(
+                                context.loc.forgotPassword,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // ── Buttons ───────────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 32),
+                        child: Column(
                           children: [
-                            Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.25),
-                                    blurRadius: 24,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  'assets/images/logo/logo.png',
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 28),
-                            Text(
-                              _t('Welcome Back', 'مرحباً بعودتك'),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 36,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _t('Please sign in to your account',
-                                  'من فضلك سجّل دخولك'),
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // ── Form ──────────────────────────────────────
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _label(_t('Email', 'البريد الإلكتروني')),
-                            const SizedBox(height: 8),
-                            _InputField(
-                              controller: _emailController,
-                              hint: _t(
-                                  'Enter your email', 'أدخل بريدك الإلكتروني'),
-                              keyboardType: TextInputType.emailAddress,
-                              isArabic: _isArabic,
-                            ),
-                            const SizedBox(height: 22),
-                            _label(_t('Password', 'كلمة المرور')),
-                            const SizedBox(height: 8),
-                            _InputField(
-                              controller: _passwordController,
-                              hint:
-                                  _t('Enter your password', 'أدخل كلمة المرور'),
-                              obscure: _obscure,
-                              isArabic: _isArabic,
-                              suffix: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _obscure = !_obscure),
-                                child: Icon(
-                                  _obscure
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                  color: _kSlate400,
-                                  size: 22,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: GestureDetector(
-                                onTap: () {
-                                  if (_emailController.text.isNotEmpty) {
-                                    context
-                                        .read<AuthCubit>()
-                                        .forgotPassword(_emailController.text);
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(_t(
-                                              'Please enter your email first',
-                                              'يرجى إدخال البريد الإلكتروني أولاً'))),
-                                    );
-                                  }
-                                },
-                                child: Text(
-                                  _t('Forgot Password?', 'نسيت كلمة المرور؟'),
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // ── Buttons ───────────────────────────────────
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 32),
-                          child: Column(
-                            children: [
-                              // Sign In
-                              BlocBuilder<AuthCubit, AuthState>(
-                                builder: (context, state) {
-                                  if (state is AuthLoading) {
-                                    return const SizedBox(
-                                      height: 64,
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                            color: Colors.white),
-                                      ),
-                                    );
-                                  }
-                                  return _TappableButton(
-                                    onTap: _login,
-                                    child: Container(
-                                      width: double.infinity,
-                                      height: 64,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(14),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.2),
-                                            blurRadius: 16,
-                                            offset: const Offset(0, 6),
-                                          ),
-                                        ],
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        _t('Sign In', 'تسجيل الدخول'),
-                                        style: const TextStyle(
-                                          color: _kPrimary,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
+                            // Sign In
+                            BlocBuilder<AuthCubit, AuthState>(
+                              builder: (context, state) {
+                                if (state is AuthLoading) {
+                                  return const SizedBox(
+                                    height: 64,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white),
                                     ),
                                   );
-                                },
-                              ),
-                              const SizedBox(height: 14),
-                              // Google
-                              _TappableButton(
-                                onTap: () =>
-                                    context.read<AuthCubit>().loginWithGoogle(),
-                                child: Container(
-                                  width: double.infinity,
-                                  height: 64,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      CustomPaint(
-                                        size: const Size(24, 24),
-                                        painter: _GoogleLogoPainter(),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        _t('Continue with Google',
-                                            'المتابعة مع جوجل'),
-                                        style: const TextStyle(
-                                          color: _kSlate800,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
+                                }
+                                return _TappableButton(
+                                  onTap: _login,
+                                  child: Container(
+                                    width: double.infinity,
+                                    height: 64,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 6),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              // Sign up link
-                              RichText(
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500),
-                                  children: [
-                                    TextSpan(
-                                      text: _t("Don't have an account? ",
-                                          'ليس لديك حساب؟ '),
-                                      style: const TextStyle(
-                                          color: Colors.white70),
+                                      ],
                                     ),
-                                    WidgetSpan(
-                                      child: GestureDetector(
-                                        onTap: () => Navigator.pushNamed(
-                                            context, AppRouter.register),
-                                        child: Text(
-                                          _t('Sign Up', 'إنشاء حساب'),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      context.loc.login,
+                                      style: const TextStyle(
+                                        color: _kPrimary,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            // Google
+                            _TappableButton(
+                              onTap: () =>
+                                  context.read<AuthCubit>().loginWithGoogle(),
+                              child: Container(
+                                width: double.infinity,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    CustomPaint(
+                                      size: const Size(24, 24),
+                                      painter: _GoogleLogoPainter(),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      context.tr('Continue with Google',
+                                          'المتابعة مع جوجل'),
+                                      style: const TextStyle(
+                                        color: _kSlate800,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 24),
+                            // Sign up link
+                            RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w500),
+                                children: [
+                                  TextSpan(
+                                    text: context.tr("Don't have an account? ",
+                                        'ليس لديك حساب؟ '),
+                                    style:
+                                        const TextStyle(color: Colors.white70),
+                                  ),
+                                  WidgetSpan(
+                                    child: GestureDetector(
+                                      onTap: () => Navigator.pushNamed(
+                                          context, AppRouter.register),
+                                      child: Text(
+                                        context.loc.signUp,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -354,76 +339,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       );
-}
-
-// ─── Language Toggle ──────────────────────────────────────────────────────────
-
-class _LangToggle extends StatelessWidget {
-  final bool isArabic;
-  final VoidCallback onToggle;
-  const _LangToggle({required this.isArabic, required this.onToggle});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onToggle,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white30),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'EN',
-              style: TextStyle(
-                color: !isArabic ? Colors.white : Colors.white38,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(width: 6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: 28,
-              height: 16,
-              decoration: BoxDecoration(
-                color: Colors.white30,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: AnimatedAlign(
-                duration: const Duration(milliseconds: 250),
-                alignment:
-                    isArabic ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'ع',
-              style: TextStyle(
-                color: isArabic ? Colors.white : Colors.white38,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ─── Input Field ─────────────────────────────────────────────────────────────

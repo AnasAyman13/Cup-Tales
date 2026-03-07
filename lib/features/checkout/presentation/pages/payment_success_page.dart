@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class PaymentSuccessPage extends StatelessWidget {
   const PaymentSuccessPage({super.key});
@@ -15,17 +16,21 @@ class PaymentSuccessPage extends StatelessWidget {
             children: [
               const Icon(Icons.check_circle, size: 100, color: Colors.green),
               const SizedBox(height: 24),
-              const Text('Payment Successful!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(context.loc.paymentSuccess,
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              const Text(
-                'Your order has been placed and is being prepared.',
+              Text(
+                context.loc.paymentSuccessMsg,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(context, AppRouter.home, (route) => false),
-                child: const Text('Back to Home', style: TextStyle(color: Colors.white)),
+                onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                    context, AppRouter.home, (route) => false),
+                child: Text(context.loc.backToHome,
+                    style: const TextStyle(color: Colors.white)),
               )
             ],
           ),

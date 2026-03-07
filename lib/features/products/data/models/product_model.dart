@@ -8,7 +8,9 @@ class ProductModel extends ProductEntity {
     required super.categoryId,
     required super.description,
     required super.imageUrl,
-    required super.basePrice,
+    super.priceS,
+    super.priceM,
+    super.priceL,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
@@ -19,8 +21,9 @@ class ProductModel extends ProductEntity {
       categoryId: json['category_id'] as String? ?? '',
       description: json['description'] as String? ?? '',
       imageUrl: json['image_url'] as String? ?? '',
-      // Supabase numeric/float mapping
-      basePrice: (json['base_price'] as num?)?.toDouble() ?? 0.0,
+      priceS: (json['price_s'] as num?)?.toDouble(),
+      priceM: (json['price_m'] as num?)?.toDouble(),
+      priceL: (json['price_l'] as num?)?.toDouble(),
     );
   }
 }

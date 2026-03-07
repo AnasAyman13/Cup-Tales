@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../home/presentation/pages/home_page.dart';
+import '../../../home/presentation/pages/main_page.dart';
 import 'login_page.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
@@ -17,7 +17,7 @@ class AuthGate extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         } else if (state is AuthAuthenticated) {
-          return const HomePage();
+          return const MainPage();
         } else {
           return const LoginPage();
         }

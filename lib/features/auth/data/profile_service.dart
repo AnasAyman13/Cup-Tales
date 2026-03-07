@@ -2,7 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/supabase_service.dart';
 
 class ProfileService {
-  final SupabaseClient _client = SupabaseService.client;
+  SupabaseClient get _client => SupabaseService.client;
 
   /// Returns the user's role from the [users] table.
   /// Returns null if no role column exists or user not found.

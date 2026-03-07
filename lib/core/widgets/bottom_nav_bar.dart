@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../localization/app_localizations.dart';
 import '../theme/app_colors.dart';
 
 class BottomNavBar extends StatelessWidget {
@@ -14,57 +15,49 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-            child: Material(
-              color: Colors.white.withOpacity(0.82),
-              child: Container(
-                height: 72,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.black.withOpacity(0.06)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.10),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    _Item(
-                      icon: Icons.home_rounded,
-                      label: 'Home',
-                      selected: currentIndex == 0,
-                      onTap: () => onTap(0),
-                    ),
-                    _Item(
-                      icon: Icons.receipt_long_rounded,
-                      label: 'Orders',
-                      selected: currentIndex == 1,
-                      onTap: () => onTap(1),
-                    ),
-                    _Item(
-                      icon: Icons.favorite_rounded,
-                      label: 'Favorites',
-                      selected: currentIndex == 2,
-                      onTap: () => onTap(2),
-                    ),
-                    _Item(
-                      icon: Icons.person_rounded,
-                      label: 'Profile',
-                      selected: currentIndex == 3,
-                      onTap: () => onTap(3),
-                    ),
-                  ],
-                ),
+    return Container(
+      padding: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
+      color: Colors.transparent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Material(
+            color: Colors.white.withOpacity(0.82),
+            child: Container(
+              height: 72,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.black.withOpacity(0.06)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.10),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  _Item(
+                    icon: Icons.home_rounded,
+                    label: context.loc.navHome,
+                    selected: currentIndex == 0,
+                    onTap: () => onTap(0),
+                  ),
+                  _Item(
+                    icon: Icons.receipt_long_rounded,
+                    label: context.loc.navOrders,
+                    selected: currentIndex == 1,
+                    onTap: () => onTap(1),
+                  ),
+                  _Item(
+                    icon: Icons.person_rounded,
+                    label: context.loc.navProfile,
+                    selected: currentIndex == 2,
+                    onTap: () => onTap(2),
+                  ),
+                ],
               ),
             ),
           ),

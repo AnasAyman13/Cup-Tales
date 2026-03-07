@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class OrdersPage extends StatelessWidget {
   const OrdersPage({super.key});
@@ -6,9 +7,10 @@ class OrdersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Orders')),
-      body: const Center(
-        child: Text('Orders Page', style: TextStyle(fontSize: 18)),
+      appBar: AppBar(title: Text(context.loc.navOrders)),
+      body: Center(
+        child:
+            Text(context.loc.navOrders, style: const TextStyle(fontSize: 18)),
       ),
     );
   }

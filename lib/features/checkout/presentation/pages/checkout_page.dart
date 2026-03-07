@@ -4,6 +4,7 @@ import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
 import '../../../../features/cart/presentation/cubit/cart_cubit.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -13,24 +14,25 @@ class CheckoutPage extends StatelessWidget {
     return BlocProvider(
       create: (_) => CheckoutCubit(context.read<CartCubit>()),
       child: Scaffold(
-        appBar: AppBar(title: const Text('Checkout')),
+        appBar: AppBar(title: Text(context.loc.checkout)),
         body: BlocConsumer<CheckoutCubit, CheckoutState>(
           listener: (context, state) {
             if (state is CheckoutSuccess) {
               Navigator.pushReplacementNamed(context, AppRouter.paymentSuccess);
             } else if (state is CheckoutError) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(state.message)));
             }
           },
           builder: (context, state) {
             if (state is CheckoutProcessing) {
-              return const Center(
+              return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(color: Colors.brown),
-                    SizedBox(height: 20),
-                    Text('Processing Payment...'),
+                    const CircularProgressIndicator(color: Colors.brown),
+                    const SizedBox(height: 20),
+                    Text(context.loc.processingPayment),
                   ],
                 ),
               );
@@ -46,28 +48,36 @@ class CheckoutPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Select Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(context.loc.paymentMethod,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   ListTile(
-                    title: const Text('Cashier (Pay at Counter)'),
+                    title: Text(context.loc.cashier),
                     leading: Radio<String>(
                       value: 'Cashier',
                       groupValue: selectedMethod,
-                      onChanged: (value) => context.read<CheckoutCubit>().selectPaymentMethod(value!),
+                      onChanged: (value) => context
+                          .read<CheckoutCubit>()
+                          .selectPaymentMethod(value!),
                     ),
                   ),
                   ListTile(
-                    title: const Text('Visa / Mastercard'),
+                    title: Text(context.loc.visa),
                     leading: Radio<String>(
                       value: 'Visa',
                       groupValue: selectedMethod,
-                      onChanged: (value) => context.read<CheckoutCubit>().selectPaymentMethod(value!),
+                      onChanged: (value) => context
+                          .read<CheckoutCubit>()
+                          .selectPaymentMethod(value!),
                     ),
                   ),
                   const Spacer(),
                   ElevatedButton(
-                    onPressed: () => context.read<CheckoutCubit>().processPayment(),
-                    child: const Text('Confirm Payment', style: TextStyle(color: Colors.white)),
+                    onPressed: () =>
+                        context.read<CheckoutCubit>().processPayment(),
+                    child: Text(context.loc.confirmPayment,
+                        style: const TextStyle(color: Colors.white)),
                   )
                 ],
               ),

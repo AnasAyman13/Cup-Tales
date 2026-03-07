@@ -2,23 +2,22 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'app_language.dart';
 import 'language_state.dart';
 import '../local_storage/prefs_service.dart';
+import '../di/injection_container.dart' as di;
 
 class LanguageCubit extends Cubit<LanguageState> {
-  final PrefsService _prefsService;
+  LanguageCubit() : super(const LanguageState(language: AppLanguage.en));
 
-  LanguageCubit({required PrefsService prefsService})
-    : _prefsService = prefsService,
-      super(const LanguageState(language: AppLanguage.en));
-
-  void load() {
-    final langCode = _prefsService.getAppLanguage();
+  Future<void> load() async {
+    await di.appReady; // safe to call before SharedPrefs is ready
+    final langCode = di.sl<PrefsService>().getAppLanguage();
     final lang = langCode == 'ar' ? AppLanguage.ar : AppLanguage.en;
     emit(LanguageState(language: lang));
   }
 
   Future<void> setLanguage(AppLanguage language) async {
+    await di.appReady;
     final langCode = language == AppLanguage.ar ? 'ar' : 'en';
-    await _prefsService.setAppLanguage(langCode);
+    await di.sl<PrefsService>().setAppLanguage(langCode);
     emit(LanguageState(language: language));
   }
 }

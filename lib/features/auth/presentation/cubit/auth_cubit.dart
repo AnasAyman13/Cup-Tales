@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/di/injection_container.dart' as di;
 import '../../data/profile_service.dart';
 import 'auth_state.dart';
 
@@ -15,7 +16,8 @@ class AuthCubit extends Cubit<AuthState> {
   })  : _authService = authService,
         _profileService = profileService,
         super(AuthInitial()) {
-    _initAuthStateListener();
+    // Defer Supabase listener until after Supabase.initialize() completes.
+    di.appReady.then((_) => _initAuthStateListener());
   }
 
   StreamSubscription<supabase.AuthState>? _authSubscription;
@@ -26,18 +28,24 @@ class AuthCubit extends Cubit<AuthState> {
       final supabase.AuthChangeEvent event = data.event;
       final supabase.Session? session = data.session;
 
-      if (event == supabase.AuthChangeEvent.signedIn && session != null) {
-        // Capture session and user
+      if (event == supabase.AuthChangeEvent.initialSession) {
+        // Supabase has restored the persisted session (or confirmed no session).
+        // This is the ONLY reliable signal for "is the user logged in at startup".
+        if (session != null) {
+          final role = await _profileService.getUserRole();
+          emit(AuthAuthenticated(isAdmin: role == 'admin'));
+        } else {
+          emit(AuthUnauthenticated());
+        }
+      } else if (event == supabase.AuthChangeEvent.signedIn &&
+          session != null) {
+        // Explicit sign-in (not session restore)
         final user = session.user;
-
-        // Upsert user profile
         await _authService.upsertUserProfile(
           id: user.id,
           email: user.email ?? '',
           fullName: user.userMetadata?['full_name'] as String?,
         );
-
-        // Check role and emit authenticated
         final role = await _profileService.getUserRole();
         emit(AuthAuthenticated(isAdmin: role == 'admin'));
       } else if (event == supabase.AuthChangeEvent.signedOut) {
@@ -53,20 +61,11 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   // ─── App Start Check ─────────────────────────────────────────────────────
-
-  void onAppStart() async {
-    emit(AuthLoading());
-    try {
-      final session = _authService.currentSession;
-      if (session != null) {
-        final role = await _profileService.getUserRole();
-        emit(AuthAuthenticated(isAdmin: role == 'admin'));
-      } else {
-        emit(AuthUnauthenticated());
-      }
-    } catch (_) {
-      emit(AuthUnauthenticated());
-    }
+  // Nothing to do here — session detection happens via _initAuthStateListener
+  // which fires an initialSession event when Supabase restores the session.
+  // Calling this is a no-op but kept for compatibility with existing call sites.
+  void onAppStart() {
+    // Intentionally empty — auth state is driven by the stream listener above.
   }
 
   // ─── Sign In ─────────────────────────────────────────────────────────────

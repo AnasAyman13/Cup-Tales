@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/categories_cubit.dart';
 import '../cubit/categories_state.dart';
+import '../../../../core/localization/app_localizations.dart';
 import 'category_card.dart';
 
 class CategoriesSection extends StatelessWidget {
@@ -22,8 +23,8 @@ class CategoriesSection extends StatelessWidget {
           if (state.selectedCategoryId == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               context.read<CategoriesCubit>().selectCategory(
-                state.categories[0].id,
-              );
+                    state.categories[0].id,
+                  );
             });
           }
 
@@ -41,8 +42,8 @@ class CategoriesSection extends StatelessWidget {
                   category: category,
                   isSelected: isSelected,
                   onTap: () => context.read<CategoriesCubit>().selectCategory(
-                    category.id,
-                  ),
+                        category.id,
+                      ),
                 );
               },
             ),
@@ -54,7 +55,8 @@ class CategoriesSection extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    'Failed to load categories',
+                    context.tr(
+                        'Failed to load categories', 'فشل في تحميل الأصناف'),
                     style: TextStyle(color: Colors.red[300]),
                   ),
                   const SizedBox(height: 8),
@@ -62,7 +64,7 @@ class CategoriesSection extends StatelessWidget {
                     onPressed: () =>
                         context.read<CategoriesCubit>().loadCategories(),
                     icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Retry'),
+                    label: Text(context.loc.retry),
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),

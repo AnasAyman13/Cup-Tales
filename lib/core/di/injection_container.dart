@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../network/api_client.dart';
@@ -20,29 +21,24 @@ import '../../features/products/domain/repositories/products_repo.dart';
 import '../../features/products/domain/usecases/get_products_by_category.dart';
 import '../../features/products/presentation/cubit/products_cubit.dart';
 
-final sl = GetIt.instance; // sl = Service Locator
+final sl = GetIt.instance;
 
-Future<void> init() async {
-  //! Core
-  // Network
+/// Completer that resolves once the async init (SharedPreferences) is done.
+/// SplashCubit awaits this before reading any pref values.
+final _readyCompleter = Completer<void>();
+Future<void> get appReady => _readyCompleter.future;
+
+/// Step 1 — register all factories/singletons SYNCHRONOUSLY.
+/// No IO, no awaits — completes in <1ms.
+void registerSync() {
   sl.registerLazySingleton(() => ApiClient());
-
-  // Local Storage
   sl.registerLazySingleton(() => HiveService());
-
-  final sharedPreferences = await SharedPreferences.getInstance();
-  sl.registerLazySingleton(() => PrefsService(sharedPreferences));
-
-  // Services
   sl.registerLazySingleton(() => NotificationService());
-
-  //! Features
-  // Core Cubits
-  sl.registerFactory(() => LanguageCubit(prefsService: sl()));
-
-  // Auth
   sl.registerLazySingleton(() => AuthService());
   sl.registerLazySingleton(() => ProfileService());
+
+  // Features
+  sl.registerFactory(() => LanguageCubit());
   sl.registerFactory(() => AuthCubit(authService: sl(), profileService: sl()));
 
   // Categories
@@ -57,13 +53,20 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetProductsByCategory(sl()));
   sl.registerFactory(() => ProductsCubit(sl()));
 
-  // Admin
   // Cart
   sl.registerFactory(() => CartCubit(sl()));
-  // Checkout
-  // Home
-  // Notifications
-  // Onboarding
-  // Products
-  // Splash
+}
+
+/// Step 2 — load SharedPreferences and signal readiness.
+/// Called AFTER runApp() — runs in parallel with the splash animation.
+Future<void> initAsync() async {
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerLazySingleton(() => PrefsService(sharedPreferences));
+  _readyCompleter.complete();
+}
+
+/// Legacy entry point kept for compatibility if anything still calls di.init().
+Future<void> init() async {
+  registerSync();
+  await initAsync();
 }

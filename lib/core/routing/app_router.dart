@@ -10,6 +10,9 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/reset_password_page.dart';
 import '../../features/auth/presentation/pages/auth_gate.dart';
+import '../../features/profile/presentation/pages/personal_info_page.dart';
+import '../../features/profile/presentation/pages/notifications_settings_page.dart';
+import '../../features/profile/presentation/pages/privacy_policy_page.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -23,6 +26,9 @@ class AppRouter {
   static const String checkout = '/checkout';
   static const String paymentSuccess = '/payment-success';
   static const String resetPassword = '/reset-password';
+  static const String personalInfo = '/personal-info';
+  static const String notifications = '/notifications';
+  static const String privacyPolicy = '/privacy-policy';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -49,6 +55,13 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const PaymentSuccessPage());
       case resetPassword:
         return MaterialPageRoute(builder: (_) => const ResetPasswordPage());
+      case personalInfo:
+        return MaterialPageRoute(builder: (_) => const PersonalInfoPage());
+      case notifications:
+        return MaterialPageRoute(
+            builder: (_) => const NotificationsSettingsPage());
+      case privacyPolicy:
+        return MaterialPageRoute(builder: (_) => const PrivacyPolicyPage());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

@@ -24,7 +24,7 @@ class HomeCubit extends Cubit<HomeState> {
           categoryId: 'dummy_cat',
           description: 'Strong and bold.',
           imageUrl: 'assets/images/products/espresso.png',
-          basePrice: 2.5,
+          priceS: 2.5,
         ),
         const ProductEntity(
           id: '2',
@@ -32,7 +32,7 @@ class HomeCubit extends Cubit<HomeState> {
           categoryId: 'dummy_cat',
           description: 'Classic Italian coffee.',
           imageUrl: 'assets/images/products/cappuccino.png',
-          basePrice: 3.5,
+          priceS: 3.5,
         ),
         const ProductEntity(
           id: '3',
@@ -40,7 +40,7 @@ class HomeCubit extends Cubit<HomeState> {
           categoryId: 'dummy_cat',
           description: 'Smooth and milky.',
           imageUrl: 'assets/images/products/latte.png',
-          basePrice: 4.0,
+          priceS: 4.0,
         ),
       ];
       final mockCategories = [
