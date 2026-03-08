@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/cart_item_entity.dart';
+import '../../domain/entities/supabase_cart_item.dart';
 
 abstract class CartState extends Equatable {
   const CartState();
@@ -11,16 +11,20 @@ abstract class CartState extends Equatable {
 class CartLoading extends CartState {}
 
 class CartLoaded extends CartState {
-  final List<CartItemEntity> items;
+  final List<SupabaseCartItem> items;
+  final double discount;
+  final String? appliedPromoCode;
 
-  const CartLoaded({this.items = const []});
+  const CartLoaded({
+    this.items = const [],
+    this.discount = 0.0,
+    this.appliedPromoCode,
+  });
 
-  double get subtotal {
-    return items.fold(0, (sum, item) => sum + item.totalPrice);
-  }
+  double get subtotal => items.fold(0, (sum, item) => sum + item.totalPrice);
 
   @override
-  List<Object> get props => [items];
+  List<Object> get props => [items, discount, appliedPromoCode ?? ''];
 }
 
 class CartError extends CartState {
@@ -31,3 +35,7 @@ class CartError extends CartState {
   @override
   List<Object> get props => [message];
 }
+
+class CartCheckingOut extends CartState {}
+
+class CartCheckedOut extends CartState {}

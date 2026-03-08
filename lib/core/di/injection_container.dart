@@ -62,6 +62,10 @@ void registerSync() {
 Future<void> initAsync() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => PrefsService(sharedPreferences));
+
+  // Initialize Hive and open all boxes before signaling readiness
+  await sl<HiveService>().init();
+
   _readyCompleter.complete();
 }
 

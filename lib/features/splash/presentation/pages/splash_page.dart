@@ -135,12 +135,13 @@ class _SplashPageState extends State<SplashPage>
                   Opacity(
                     opacity: _logoFade.value,
                     child: Transform.scale(
-                      scale: 0.85 + 0.15 * _logoFade.value,
+                      scale: 1.0 +
+                          0.2 * _logoFade.value, // Increased from 0.85/0.15
                       child: SizedBox(
-                        width: 90,
-                        height: 90,
+                        width: 120, // Increased from 90
+                        height: 120,
                         child: Image.asset(
-                          'assets/images/logo/logo_foreground.png',
+                          'assets/images/logo/logo.png', // Using the main logo for clarity
                           fit: BoxFit.contain,
                           gaplessPlayback: true,
                         ),
@@ -157,9 +158,11 @@ class _SplashPageState extends State<SplashPage>
                         'CUP TALES',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: 22, // Increased from 20
                           fontWeight: FontWeight.w900,
-                          letterSpacing: 7,
+                          letterSpacing: 10, // Increased from 7
+                          fontFamily:
+                              'Inter', // Assuming standard clean fonts are available
                         ),
                       ),
                     ),
@@ -248,11 +251,19 @@ class _CupPainter extends CustomPainter {
         ..lineTo(w, h)
         ..close();
 
-      // Main coffee fill
+      // Main coffee fill with gradient
       canvas.drawPath(
         liqPath,
         Paint()
-          ..color = _coffee.withValues(alpha: 0.95)
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              _coffee.withValues(alpha: 0.95),
+              const Color(0xFF8B4513)
+                  .withValues(alpha: 0.95), // Deeper brown at bottom
+            ],
+          ).createShader(Rect.fromLTRB(0, surfaceY - waveAmp, w, h))
           ..style = PaintingStyle.fill,
       );
 
@@ -260,9 +271,9 @@ class _CupPainter extends CustomPainter {
       canvas.drawPath(
         liqPath,
         Paint()
-          ..color = const Color(0xFFEFAA5A).withValues(alpha: 0.40)
+          ..color = const Color(0xFFF5DEB3).withValues(alpha: 0.35)
           ..style = PaintingStyle.fill
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
       );
 
       canvas.restore();

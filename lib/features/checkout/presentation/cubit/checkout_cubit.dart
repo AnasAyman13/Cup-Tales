@@ -13,13 +13,13 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
   Future<void> processPayment() async {
     emit(CheckoutProcessing());
-    
+
     // Simulate payment processing delay
     await Future.delayed(const Duration(seconds: 2));
 
     try {
-      // Clear the cart on successful checkout
-      _cartCubit.clearCart();
+      // Perform the actual Supabase checkout (inserts orders, clears cart)
+      await _cartCubit.checkout();
       emit(CheckoutSuccess());
     } catch (e) {
       emit(CheckoutError(e.toString()));

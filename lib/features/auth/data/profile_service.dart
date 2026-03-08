@@ -12,12 +12,27 @@ class ProfileService {
 
     try {
       final response = await _client
-          .from('users')
+          .from('profiles')
           .select('role')
           .eq('id', user.id)
           .maybeSingle();
 
       return response?['role'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Returns the user's full profile from the [profiles] table.
+  Future<Map<String, dynamic>?> getProfile(String userId) async {
+    try {
+      final response = await _client
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      return response;
     } catch (_) {
       return null;
     }
