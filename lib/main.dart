@@ -43,19 +43,21 @@ void main() async {
     Future.delayed(const Duration(milliseconds: 300), () async {
       debugPrint('[Startup] starting heavy async init');
 
-      // Supabase + SharedPreferences in parallel
+      // Supabase + SharedPreferences + Hive in parallel
       await Future.wait([
         Supabase.initialize(
           url: SupabaseConfig.url,
           anonKey: SupabaseConfig.anonKey,
         ),
         di.initAsync(), // registers PrefsService, completes di.appReady
+        di
+            .sl<HiveService>()
+            .init(), // Ensure Hive is ready before Cubits use it
       ]);
 
       debugPrint('[Startup] async init done');
 
       // Non-critical — fire and forget
-      di.sl<HiveService>().init().ignore();
       di.sl<NotificationService>().init().ignore();
     });
   });

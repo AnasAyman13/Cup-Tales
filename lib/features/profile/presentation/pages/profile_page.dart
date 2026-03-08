@@ -15,9 +15,6 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
-    final userName =
-        user?.userMetadata?['full_name'] as String? ?? 'Cup Tales User';
-    final userEmail = user?.email ?? 'No email available';
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -25,13 +22,7 @@ class ProfilePage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 8.0),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
+        automaticallyImplyLeading: false,
         title: Text(
           context.loc.cupTalesProfile,
           style: const TextStyle(
@@ -41,140 +32,183 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 120), // Avoid nav bar overlap
-        child: Column(
-          children: [
-            // Account Summary Section
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  Text(
-                    userName,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    userEmail,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      body: FutureBuilder<Map<String, dynamic>?>(
+        future: Supabase.instance.client
+            .from('profiles')
+            .select()
+            .eq('id', user?.id ?? '')
+            .maybeSingle(),
+        builder: (context, snapshot) {
+          final profile = snapshot.data;
+          final userName = profile?['name'] as String? ??
+              user?.userMetadata?['full_name'] as String? ??
+              'Cup Tales User';
+          final userEmail = profile?['email'] as String? ??
+              user?.email ??
+              'No email available';
+          final userPhone = profile?['phone'] as String?;
 
-            // Settings List
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _SectionHeader(title: context.loc.accountSettings),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.grey.shade100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 120),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary,
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        _SettingsTile(
-                          icon: Icons.person,
-                          title: context.loc.personalInfo,
-                          subtitle: context.loc.personalInfoSubtitle,
-                          onTap: () {
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        userEmail,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      if (userPhone != null && userPhone.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          userPhone,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () {
                             Navigator.pushNamed(
                                 context, AppRouter.personalInfo);
                           },
+                          icon: const Icon(Icons.add_call, size: 18),
+                          label: Text(context.tr(
+                              'Add phone number', 'إضافة رقم الهاتف')),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            backgroundColor:
+                                AppColors.primary.withOpacity(0.05),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
-                        const _Divider(),
-                        _SettingsTile(
-                          icon: Icons.notifications,
-                          title: context.loc.notifications,
-                          subtitle: context.loc.notificationsSubtitle,
-                          onTap: () {
-                            Navigator.pushNamed(
-                                context, AppRouter.notifications);
-                          },
-                        ),
-                        const _Divider(),
-                        const _LanguageTile(),
                       ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 32),
-                  _SectionHeader(title: context.loc.support),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.grey.shade100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _SectionHeader(title: context.loc.accountSettings),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.grey.shade100),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        _SettingsTile(
-                          icon: Icons.shield,
-                          title: context.loc.privacyPolicy,
-                          onTap: () {
-                            Navigator.pushNamed(
-                                context, AppRouter.privacyPolicy);
-                          },
+                        child: Column(
+                          children: [
+                            _SettingsTile(
+                              icon: Icons.person,
+                              title: context.loc.personalInfo,
+                              subtitle: context.loc.personalInfoSubtitle,
+                              onTap: () {
+                                Navigator.pushNamed(
+                                    context, AppRouter.personalInfo);
+                              },
+                            ),
+                            const _Divider(),
+                            _SettingsTile(
+                              icon: Icons.notifications,
+                              title: context.loc.notifications,
+                              subtitle: context.loc.notificationsSubtitle,
+                              onTap: () {
+                                Navigator.pushNamed(
+                                    context, AppRouter.notifications);
+                              },
+                            ),
+                            const _Divider(),
+                            const _LanguageTile(),
+                          ],
                         ),
-                        const _Divider(),
-                        _SettingsTile(
-                          icon: Icons.logout,
-                          title: context.loc.logout,
-                          titleColor: Colors.red.shade500,
-                          iconBackgroundColor: Colors.red.shade50,
-                          iconColor: Colors.red.shade500,
-                          showChevron: false,
-                          onTap: () async {
-                            await context.read<AuthCubit>().logout();
-                            if (context.mounted) {
-                              Navigator.pushNamedAndRemoveUntil(
-                                context,
-                                AppRouter.login,
-                                (route) => false,
-                              );
-                            }
-                          },
+                      ),
+                      const SizedBox(height: 32),
+                      _SectionHeader(title: context.loc.support),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.grey.shade100),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                        child: Column(
+                          children: [
+                            _SettingsTile(
+                              icon: Icons.shield,
+                              title: context.loc.privacyPolicy,
+                              onTap: () {
+                                Navigator.pushNamed(
+                                    context, AppRouter.privacyPolicy);
+                              },
+                            ),
+                            const _Divider(),
+                            _SettingsTile(
+                              icon: Icons.logout,
+                              title: context.loc.logout,
+                              titleColor: Colors.red.shade500,
+                              iconBackgroundColor: Colors.red.shade50,
+                              iconColor: Colors.red.shade500,
+                              showChevron: false,
+                              onTap: () async {
+                                await context.read<AuthCubit>().logout();
+                                if (context.mounted) {
+                                  Navigator.pushNamedAndRemoveUntil(
+                                    context,
+                                    AppRouter.login,
+                                    (route) => false,
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
-
-// StatCard removed
 
 class _SectionHeader extends StatelessWidget {
   final String title;

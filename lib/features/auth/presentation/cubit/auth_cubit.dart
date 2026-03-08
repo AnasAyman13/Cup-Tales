@@ -4,12 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/di/injection_container.dart' as di;
+import '../../../../core/local_storage/hive_service.dart';
 import '../../data/profile_service.dart';
 import 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final AuthService _authService;
   final ProfileService _profileService;
+  final HiveService _hive = di.sl<HiveService>();
 
   AuthCubit({
     required AuthService authService,
@@ -50,7 +52,8 @@ class AuthCubit extends Cubit<AuthState> {
         } else {
           emit(AuthUnauthenticated());
         }
-      } else if (event == supabase.AuthChangeEvent.signedIn &&
+      }
+      if (event == supabase.AuthChangeEvent.signedIn &&
           session != null &&
           _isInitialStateHandled) {
         // Explicit sign-in after startup (login form, Google OAuth redirect).
@@ -61,9 +64,18 @@ class AuthCubit extends Cubit<AuthState> {
           await _authService.upsertUserProfile(
             id: user.id,
             email: user.email ?? '',
+            name: user.userMetadata?['full_name'] as String?,
+            phone: user.userMetadata?['phone'] as String?,
           );
+
+          // Fetch and cache the full profile data
+          final profile = await _profileService.getProfile(user.id);
+          if (profile != null) {
+            _hive.profileBox.put('current_user', profile);
+          }
         } catch (e) {
-          if (kDebugMode) debugPrint('[AuthCubit] upsert failed silently: $e');
+          if (kDebugMode)
+            debugPrint('[AuthCubit] upsert/cache failed silently: $e');
         }
 
         try {
@@ -114,11 +126,11 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> login(String email, String password) async {
     if (email.trim().isEmpty || !email.contains('@')) {
-      emit(const AuthError('Please enter a valid email.'));
+      emit(const AuthError('Please enter a valid email'));
       return;
     }
     if (password.length < 6) {
-      emit(const AuthError('Password must be at least 6 characters.'));
+      emit(const AuthError('Password must be at least 6 characters'));
       return;
     }
 
@@ -133,17 +145,26 @@ class AuthCubit extends Cubit<AuthState> {
 
   // ─── Sign Up ─────────────────────────────────────────────────────────────────
 
-  Future<void> register(String email, String password, String fullName) async {
+  Future<void> register({
+    required String email,
+    required String password,
+    required String fullName,
+    required String phone,
+  }) async {
     if (fullName.trim().isEmpty) {
-      emit(const AuthError('Please enter your full name.'));
+      emit(const AuthError('Please enter your full name'));
+      return;
+    }
+    if (phone.trim().isEmpty) {
+      emit(const AuthError('Please enter your phone number'));
       return;
     }
     if (email.trim().isEmpty || !email.contains('@')) {
-      emit(const AuthError('Please enter a valid email.'));
+      emit(const AuthError('Please enter a valid email'));
       return;
     }
     if (password.length < 6) {
-      emit(const AuthError('Password must be at least 6 characters.'));
+      emit(const AuthError('Password must be at least 6 characters'));
       return;
     }
 
@@ -153,8 +174,10 @@ class AuthCubit extends Cubit<AuthState> {
         email: email,
         password: password,
         fullName: fullName,
+        phone: phone,
       );
-      emit(const AuthError('Check your email to verify your account.'));
+      emit(const AuthError(
+          'Account created successfully. Please verify your email.'));
     } catch (e) {
       emit(AuthError(e.toString().replaceFirst('Exception: ', '')));
     }
@@ -178,7 +201,7 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     try {
       await _authService.resetPassword(email);
-      emit(const AuthError('Password reset email sent. Check your inbox.'));
+      emit(const AuthError('Password reset email sent'));
     } catch (e) {
       emit(AuthError(e.toString().replaceFirst('Exception: ', '')));
     }

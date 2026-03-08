@@ -52,7 +52,14 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
+  final PageController _pageController = PageController();
   int _currentPage = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   void _finishOnboarding(BuildContext context) {
     context.read<OnboardingCubit>().finishOnboarding();
@@ -60,7 +67,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   void _next(BuildContext context) {
     if (_currentPage < _pages.length - 1) {
-      setState(() => _currentPage++);
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
     } else {
       _finishOnboarding(context);
     }
@@ -73,13 +83,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget _getIllustrationForPage(int page) {
     switch (page) {
       case 0:
-        return _CoffeeIllustration(key: const ValueKey(0), page: page);
+        return Image.asset(
+          'assets/images/logo/logo.png',
+          width: 180,
+          height: 180,
+          fit: BoxFit.contain,
+        );
       case 1:
         return const _PhoneMockup(key: ValueKey(1));
       case 2:
         return const _CoffeeHero(key: ValueKey(2));
       default:
-        return _CoffeeIllustration(key: ValueKey(page), page: page);
+        return Image.asset(
+          'assets/images/logo/logo.png',
+          width: 180,
+          height: 180,
+          fit: BoxFit.contain,
+        );
     }
   }
 
@@ -90,7 +110,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: BlocListener<OnboardingCubit, OnboardingState>(
         listener: (context, state) {
           if (state is OnboardingCompleted) {
-            Navigator.pushReplacementNamed(context, AppRouter.register);
+            Navigator.pushReplacementNamed(context, AppRouter.login);
           }
         },
         child: Builder(builder: (context) {
@@ -119,47 +139,55 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     ),
                   ),
 
-                  // ── Illustration ─────────────────────────────────────────────
+                  // ── PageView for Swiping ──────────────────────────────────────
                   Expanded(
-                    child: Center(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 500),
-                        child: _getIllustrationForPage(_currentPage),
-                      ),
-                    ),
-                  ),
-
-                  // ── Text ──────────────────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 350),
-                      child: Column(
-                        key: ValueKey(_currentPage),
-                        children: [
-                          Text(
-                            _pages[_currentPage].title,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.5,
-                              height: 1.2,
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: _pages.length,
+                      onPageChanged: (index) =>
+                          setState(() => _currentPage = index),
+                      itemBuilder: (context, index) {
+                        return Column(
+                          children: [
+                            // Illustration
+                            Expanded(
+                              child: Center(
+                                child: _getIllustrationForPage(index),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _pages[_currentPage].description,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 15,
-                              height: 1.6,
+                            // Text
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 32),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    _pages[index].title,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.5,
+                                      height: 1.2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _pages[index].description,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 15,
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        );
+                      },
                     ),
                   ),
 
@@ -390,7 +418,7 @@ class _CoffeeHeroCupPainter extends CustomPainter {
 
 class _CoffeeIllustration extends StatefulWidget {
   final int page;
-  const _CoffeeIllustration({super.key, required this.page});
+  const _CoffeeIllustration({required this.page});
 
   @override
   State<_CoffeeIllustration> createState() => _CoffeeIllustrationState();

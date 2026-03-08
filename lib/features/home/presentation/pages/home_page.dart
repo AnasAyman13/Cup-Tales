@@ -28,8 +28,8 @@ class HomePage extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          titleSpacing:
-              16, // Added spacing to prevent the logo from sticking to the screen edge
+          automaticallyImplyLeading: false, // Fix ghost button issue
+          titleSpacing: 16,
           title: Row(
             children: [
               Container(

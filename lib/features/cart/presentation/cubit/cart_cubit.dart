@@ -1,51 +1,261 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../domain/entities/supabase_cart_item.dart';
+import '../../../../core/local_storage/hive_service.dart';
+import '../../../../core/di/injection_container.dart' as di;
 import 'cart_state.dart';
-import '../../domain/entities/cart_item_entity.dart';
 
 class CartCubit extends Cubit<CartState> {
-  CartCubit() : super(CartLoading());
+  final HiveService _hive = di.sl<HiveService>();
 
-  void loadCart() {
-    // In a real app, you would read from _hiveService.cartBox
-    // Here we'll start with an empty list for the skeleton
-    emit(const CartLoaded(items: []));
+  CartCubit() : super(CartLoading()) {
+    // Wait for Hive to be ready before loading cache
+    di.appReady.then((_) => _loadFromCache());
   }
 
-  void addToCart(CartItemEntity item) {
-    if (state is CartLoaded) {
-      final currentState = state as CartLoaded;
-      final currentItems = List<CartItemEntity>.from(currentState.items);
+  void _loadFromCache() {
+    if (!_hive.cartBox.isOpen) return;
 
-      // Check if product with same size already exists in cart to update qty
-      int index = currentItems.indexWhere(
-          (i) => i.product.id == item.product.id && i.size == item.size);
+    final cached = _hive.cartBox.get('items');
+    if (cached != null && cached is List) {
+      // We don't have the user yet, but we can show the UI
+      final items = cached
+          .map((e) => SupabaseCartItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      emit(CartLoaded(items: items));
+    }
+  }
 
-      if (index != -1) {
-        currentItems[index] = currentItems[index]
-            .copyWith(quantity: currentItems[index].quantity + item.quantity);
+  void _saveToCache(List<SupabaseCartItem> items) {
+    final data = items
+        .map((e) => {
+              'id': e.id,
+              'user_id': e.userId,
+              'product_id': e.productId,
+              'product_name': e.productName,
+              'price': e.price,
+              'image': e.image,
+              'quantity': e.quantity,
+            })
+        .toList();
+    _hive.cartBox.put('items', data);
+  }
+
+  SupabaseClient get _client => Supabase.instance.client;
+
+  // ── Helper to emit Loaded state with preserved discount ────────────────
+
+  void _emitLoaded({
+    required List<SupabaseCartItem> items,
+    double? discount,
+    String? promoCode,
+  }) {
+    final currentDiscount = discount ??
+        (state is CartLoaded ? (state as CartLoaded).discount : 0.0);
+    final currentPromo = promoCode ??
+        (state is CartLoaded ? (state as CartLoaded).appliedPromoCode : null);
+
+    // If promo code exists but discount is null, we might need to recalculate
+    // (but simpler to just recalculate if we have the percentage, which we don't store)
+    // For now, let's just reset discount if items change, unless we fetch it again
+
+    emit(CartLoaded(
+      items: items,
+      discount: currentDiscount,
+      appliedPromoCode: currentPromo,
+    ));
+
+    _saveToCache(items);
+  }
+
+  // ── Load cart from Supabase ─────────────────────────────────────────────
+
+  Future<void> loadCart() async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      emit(const CartError('No user logged in.'));
+      return;
+    }
+
+    emit(CartLoading());
+    try {
+      // Professional fetch: Join with products to get ALWAYS fresh data
+      final data = await _client
+          .from('cart')
+          .select('*, products(name, price, price_m, image, image_url)')
+          .eq('user_id', user.id);
+
+      final items = (data as List<dynamic>)
+          .map((e) => SupabaseCartItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      _emitLoaded(items: items, discount: 0.0, promoCode: null);
+    } catch (e) {
+      emit(CartError('Failed to load cart: ${e.toString()}'));
+    }
+  }
+
+  // ── Add item to Supabase cart ───────────────────────────────────────────
+
+  Future<void> addToCart({
+    required String productId,
+    required String productName,
+    required double price,
+    required String image,
+    required int quantity,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final existing = await _client
+          .from('cart')
+          .select()
+          .eq('user_id', user.id)
+          .eq('product_id', productId)
+          .maybeSingle();
+
+      if (existing != null) {
+        final newQty = (existing['quantity'] as int) + quantity;
+        await _client
+            .from('cart')
+            .update({'quantity': newQty}).eq('id', existing['id']);
       } else {
-        currentItems.add(item);
+        // Professional Insert: Store relations, quantity AND price
+        await _client.from('cart').insert({
+          'user_id': user.id,
+          'product_id': productId,
+          'quantity': quantity,
+          'price': price, // Persistence fix
+        });
       }
 
-      // TODO: Save updated list to Hive
-      emit(CartLoaded(items: currentItems));
+      await loadCart();
+    } catch (e) {
+      emit(CartError('Failed to add to cart: ${e.toString()}'));
     }
   }
 
-  void removeFromCart(CartItemEntity item) {
+  // ── Quantity & Removal ──────────────────────────────────────────────────
+
+  Future<void> increaseQuantity(SupabaseCartItem item) async {
+    try {
+      await _client
+          .from('cart')
+          .update({'quantity': item.quantity + 1}).eq('id', item.id);
+      await _refreshAfterChange();
+    } catch (e) {
+      emit(CartError('Failed to update quantity.'));
+    }
+  }
+
+  Future<void> decreaseQuantity(SupabaseCartItem item) async {
+    if (item.quantity <= 1) return;
+    try {
+      await _client
+          .from('cart')
+          .update({'quantity': item.quantity - 1}).eq('id', item.id);
+      await _refreshAfterChange();
+    } catch (e) {
+      emit(CartError('Failed to update quantity.'));
+    }
+  }
+
+  Future<void> removeItem(SupabaseCartItem item) async {
+    try {
+      await _client.from('cart').delete().eq('id', item.id);
+      await _refreshAfterChange();
+    } catch (e) {
+      emit(CartError('Failed to remove item.'));
+    }
+  }
+
+  Future<void> _refreshAfterChange() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+
+    final data = await _client
+        .from('cart')
+        .select('*, products(name, price, price_m, image, image_url)')
+        .eq('user_id', user.id);
+    final items = (data as List<dynamic>)
+        .map((e) => SupabaseCartItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    // Recalculate discount if promo exists
     if (state is CartLoaded) {
-      final currentState = state as CartLoaded;
-      final currentItems = List<CartItemEntity>.from(currentState.items);
-      currentItems.removeWhere(
-          (i) => i.product.id == item.product.id && i.size == item.size);
-
-      // TODO: Save to Hive
-      emit(CartLoaded(items: currentItems));
+      final s = state as CartLoaded;
+      if (s.appliedPromoCode != null) {
+        await applyPromoCode(s.appliedPromoCode!);
+      } else {
+        _emitLoaded(items: items);
+      }
+    } else {
+      _emitLoaded(items: items);
     }
   }
+
+  // ── Promo Code ──────────────────────────────────────────────────────────
+
+  Future<void> applyPromoCode(String code) async {
+    if (state is! CartLoaded) return;
+    final items = (state as CartLoaded).items;
+    final subtotal = (state as CartLoaded).subtotal;
+
+    try {
+      final data = await _client
+          .from('discount_codes')
+          .select()
+          .eq('code', code)
+          .eq('is_active', true)
+          .maybeSingle();
+
+      if (data != null) {
+        final percent = (data['discount_percent'] as num).toDouble();
+        final discount = subtotal * (percent / 100);
+
+        _emitLoaded(items: items, discount: discount, promoCode: code);
+      } else {
+        emit(const CartError('Invalid promo code'));
+        _emitLoaded(items: items, discount: 0.0, promoCode: null);
+      }
+    } catch (e) {
+      emit(const CartError('Error applying promo code'));
+    }
+  }
+
+  // ── Checkout ────────────────────────────────────────────────────────────
+
+  Future<void> checkout() async {
+    final user = _client.auth.currentUser;
+    if (user == null || state is! CartLoaded) return;
+
+    final items = (state as CartLoaded).items;
+    if (items.isEmpty) return;
+
+    emit(CartCheckingOut());
+    try {
+      for (final item in items) {
+        // Professional Checkout: Price persists at time of purchase
+        await _client.from('orders').insert({
+          'user_id': user.id,
+          'product_id': item.productId,
+          'price': item.price,
+          'quantity': item.quantity,
+          'status': 'preparing',
+        });
+      }
+
+      await _client.from('cart').delete().eq('user_id', user.id);
+      emit(CartCheckedOut());
+    } catch (e) {
+      emit(CartError('Checkout failed: ${e.toString()}'));
+    }
+  }
+
+  // ── Legacy stub (kept for compatibility) ───────────────────────────────
 
   void clearCart() {
-    // TODO: Clear from Hive
     emit(const CartLoaded(items: []));
   }
 }

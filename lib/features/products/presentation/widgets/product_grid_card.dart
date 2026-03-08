@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../../../features/cart/presentation/cubit/cart_cubit.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ProductGridCard extends StatelessWidget {
   final ProductEntity product;
@@ -69,15 +71,35 @@ class ProductGridCard extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2D3194), // AppColors.primary
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 20,
+                      GestureDetector(
+                        onTap: () {
+                          context.read<CartCubit>().addToCart(
+                                productId: product.id,
+                                productName: product.name,
+                                price: product.basePrice,
+                                image: product.imageUrl,
+                                quantity: 1,
+                              );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  '${context.tr(product.name, product.nameAr ?? product.name)} ${context.loc.addedToCart}'),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2D3194),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ],

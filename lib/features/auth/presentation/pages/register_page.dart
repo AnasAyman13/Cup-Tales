@@ -25,6 +25,7 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscure = true;
 
@@ -32,15 +33,17 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     _fullNameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   void _register() {
     context.read<AuthCubit>().register(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-          _fullNameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+          fullName: _fullNameController.text.trim(),
+          phone: _phoneController.text.trim(),
         );
   }
 
@@ -175,6 +178,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       hint: context.tr(
                           'Enter your full name', 'أدخل اسمك الكامل'),
                       keyboardType: TextInputType.name,
+                      isArabic: context.isArabic,
+                    ),
+                    const SizedBox(height: 22),
+                    _label(context.tr('Phone Number', 'رقم الهاتف')),
+                    const SizedBox(height: 8),
+                    _AuthInputField(
+                      controller: _phoneController,
+                      hint: context.tr(
+                          'Enter your phone number', 'أدخل رقم هاتفك'),
+                      keyboardType: TextInputType.phone,
                       isArabic: context.isArabic,
                     ),
                     const SizedBox(height: 22),

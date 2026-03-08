@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/product_entity.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../features/cart/presentation/cubit/cart_cubit.dart';
-import '../../../../features/cart/domain/entities/cart_item_entity.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 
@@ -385,12 +384,14 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                           onPressed: _selectedSize == null
                               ? null
                               : () {
-                                  final item = CartItemEntity(
-                                    product: widget.product,
-                                    quantity: _quantity,
-                                    size: _selectedSize!,
-                                  );
-                                  context.read<CartCubit>().addToCart(item);
+                                  context.read<CartCubit>().addToCart(
+                                        productId: widget.product.id,
+                                        productName: widget.product.name,
+                                        price: _availableSizes[_selectedSize] ??
+                                            0.0,
+                                        image: widget.product.imageUrl,
+                                        quantity: _quantity,
+                                      );
 
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(

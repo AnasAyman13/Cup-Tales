@@ -18,14 +18,28 @@ class AuthService {
     required String email,
     required String password,
     String? fullName,
+    String? phone,
   }) async {
     try {
       final response = await _client.auth.signUp(
         email: email,
         password: password,
-        data: fullName != null ? {'full_name': fullName} : null,
+        data: {
+          if (fullName != null) 'full_name': fullName,
+          if (phone != null) 'phone': phone,
+        },
         emailRedirectTo: 'io.supabase.flutter://login-callback/',
       );
+
+      // Create profile record immediately
+      if (response.user != null) {
+        await upsertUserProfile(
+          id: response.user!.id,
+          email: response.user!.email ?? email,
+          name: fullName,
+          phone: phone,
+        );
+      }
 
       return response;
     } on AuthException catch (e) {
@@ -53,11 +67,13 @@ class AuthService {
             'Please verify your email before logging in.');
       }
 
-      // Upsert user to users table
+      // Upsert profile to profiles table
       if (response.user != null) {
         await upsertUserProfile(
           id: response.user!.id,
           email: response.user!.email ?? '',
+          name: response.user!.userMetadata?['full_name'] as String?,
+          phone: response.user!.userMetadata?['phone'] as String?,
         );
       }
 
@@ -88,6 +104,7 @@ class AuthService {
       throw Exception('Google login error: ${e.toString()}');
     }
   }
+
   // ─── Reset Password ───────────────────────────────────────────────────────
 
   Future<void> resetPassword(String email) async {
@@ -127,16 +144,20 @@ class AuthService {
     }
   }
 
-  // ─── User Upsert ──────────────────────────────────────────────────────────
+  // ─── Profile Upsert ──────────────────────────────────────────────────────────
 
   Future<void> upsertUserProfile({
     required String id,
     required String email,
+    String? name,
+    String? phone,
   }) async {
     try {
-      await _client.from('users').upsert({
+      await _client.from('profiles').upsert({
         'id': id,
         'email': email,
+        if (name != null) 'name': name,
+        'phone': phone, // Allow null for Google sign-in
         'created_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
@@ -149,22 +170,16 @@ class AuthService {
   String _parseAuthError(String message) {
     final lower = message.toLowerCase();
     if (lower.contains('invalid login credentials')) {
-      return 'Incorrect email or password.';
+      return 'Invalid email or password';
     }
     if (lower.contains('email not confirmed')) {
-      return 'Please verify your email before logging in.';
+      return 'Please verify your email before logging in';
     }
     if (lower.contains('user already registered')) {
-      return 'An account with this email already exists.';
+      return 'An account with this email already exists';
     }
     if (lower.contains('id token')) {
-      return 'Google Sign-In configuration error: Invalid ID Token.';
-    }
-    if (lower.contains('audience')) {
-      return 'Google Sign-In configuration error: Audience mismatch. (Check Web Client ID)';
-    }
-    if (lower.contains('provider is not enabled')) {
-      return 'Google Sign-In is not enabled in Supabase dashboard.';
+      return 'Google Sign-In configuration error';
     }
     return message;
   }
