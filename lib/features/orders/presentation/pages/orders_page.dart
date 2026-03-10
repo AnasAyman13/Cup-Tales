@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/order_entity.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/language_cubit.dart';
 import '../cubit/orders_cubit.dart';
 import '../cubit/orders_state.dart';
 
@@ -28,6 +30,7 @@ class _OrdersViewState extends State<_OrdersView> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageCubit>();
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F8),
       appBar: AppBar(
@@ -43,9 +46,10 @@ class _OrdersViewState extends State<_OrdersView> {
                 ),
               )
             : null,
-        title: const Text(
-          'My Orders',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        title: Text(
+          context.loc.navOrders,
+          style:
+              const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
@@ -69,12 +73,12 @@ class _OrdersViewState extends State<_OrdersView> {
       child: Row(
         children: [
           _Tab(
-            label: 'Active',
+            label: context.tr('Active', 'الحالية'),
             selected: _showActive,
             onTap: () => setState(() => _showActive = true),
           ),
           _Tab(
-            label: 'History',
+            label: context.tr('History', 'السجل'),
             selected: !_showActive,
             onTap: () => setState(() => _showActive = false),
           ),
@@ -105,7 +109,8 @@ class _OrdersViewState extends State<_OrdersView> {
               onPressed: () => context.read<OrdersCubit>().loadOrders(),
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2D3194)),
-              child: const Text('Retry', style: TextStyle(color: Colors.white)),
+              child: Text(context.loc.retry,
+                  style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -121,8 +126,9 @@ class _OrdersViewState extends State<_OrdersView> {
               ? Icons.hourglass_empty_outlined
               : Icons.receipt_long_outlined,
           label: _showActive
-              ? 'No active orders right now'
-              : 'No order history yet',
+              ? context.tr(
+                  'No active orders right now', 'لا توجد طلبات حالية الآن')
+              : context.tr('No order history yet', 'لا يوجد سجل طلبات بعد'),
         );
       }
 
@@ -193,6 +199,7 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageCubit>();
     final isActive = order.status == 'preparing';
     final shortId = order.id.length > 6 ? order.id.substring(0, 6) : order.id;
 
@@ -215,7 +222,7 @@ class _OrderCard extends StatelessWidget {
           Row(
             children: [
               // Icon
-              Container(
+              SizedBox(
                 height: 70,
                 child: order.productImage.isNotEmpty
                     ? ClipRRect(
@@ -251,7 +258,7 @@ class _OrderCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            order.status.toUpperCase(),
+                            _translateStatus(context, order.status),
                             style: TextStyle(
                               color: isActive
                                   ? const Color(0xFF2D3194)
@@ -270,7 +277,8 @@ class _OrderCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      order.productName,
+                      context.tr(order.productName,
+                          order.productNameAr ?? order.productName),
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold),
                       maxLines: 1,
@@ -279,7 +287,8 @@ class _OrderCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       isActive
-                          ? 'Estimated: 8-12 mins'
+                          ? context.tr('Estimated: 8-12 mins',
+                              'الوقت المتوقع: ٨-١٢ دقيقة')
                           : _formattedDate(order.createdAt),
                       style: const TextStyle(color: Colors.grey, fontSize: 13),
                     ),
@@ -297,10 +306,10 @@ class _OrderCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Total Price',
+                  Text(context.tr('Total Price', 'السعر الإجمالي'),
                       style: TextStyle(color: Colors.grey, fontSize: 12)),
                   Text(
-                    '\$${order.price.toStringAsFixed(2)}',
+                    '${order.price.toStringAsFixed(2)} ${context.loc.egp}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 18),
                   ),
@@ -316,6 +325,13 @@ class _OrderCard extends StatelessWidget {
   String _formattedDate(DateTime dt) {
     return '${dt.day}/${dt.month}/${dt.year}';
   }
+
+  String _translateStatus(BuildContext context, String status) {
+    if (status == 'preparing') return context.tr('PREPARING', 'قيد التحضير');
+    if (status == 'completed') return context.tr('COMPLETED', 'مكتمل');
+    if (status == 'cancelled') return context.tr('CANCELLED', 'ملغي');
+    return status.toUpperCase();
+  }
 }
 
 // ─── Empty State ─────────────────────────────────────────────────────────────
@@ -328,6 +344,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageCubit>();
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

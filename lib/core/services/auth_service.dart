@@ -96,8 +96,9 @@ class AuthService {
         redirectTo: 'io.supabase.flutter://login-callback/',
       );
     } on AuthException catch (e) {
-      if (kDebugMode)
+      if (kDebugMode) {
         print('AuthService: AuthException during Google OAuth: ${e.message}');
+      }
       throw Exception(_parseAuthError(e.message));
     } catch (e) {
       debugPrint('AuthService: Unexpected error during Google OAuth: $e');

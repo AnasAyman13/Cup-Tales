@@ -3,6 +3,7 @@ import '../../../../core/routing/app_router.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../../../features/cart/presentation/cubit/cart_cubit.dart';
+import '../../../../core/localization/language_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ProductGridCard extends StatelessWidget {
@@ -12,6 +13,7 @@ class ProductGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageCubit>();
     return GestureDetector(
       onTap: () => Navigator.pushNamed(
         context,

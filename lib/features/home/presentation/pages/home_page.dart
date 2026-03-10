@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../cart/presentation/cubit/cart_cubit.dart';
+import '../../../cart/presentation/cubit/cart_state.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../../../../core/routing/app_router.dart';
@@ -56,12 +58,27 @@ class HomePage extends StatelessWidget {
             ],
           ),
           actions: [
-            IconButton(
-              icon: Icon(
-                Icons.shopping_bag_outlined,
-                color: Colors.grey.shade700,
-              ),
-              onPressed: () => Navigator.pushNamed(context, AppRouter.cart),
+            BlocBuilder<CartCubit, CartState>(
+              builder: (context, state) {
+                int itemCount = 0;
+                if (state is CartLoaded) {
+                  itemCount =
+                      state.items.fold(0, (sum, item) => sum + item.quantity);
+                }
+                return IconButton(
+                  icon: Badge(
+                    isLabelVisible: itemCount > 0,
+                    label: Text(itemCount.toString()),
+                    backgroundColor: Colors.red,
+                    offset: const Offset(4, -4),
+                    child: Icon(
+                      Icons.shopping_bag_outlined,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  onPressed: () => Navigator.pushNamed(context, AppRouter.cart),
+                );
+              },
             ),
             const SizedBox(width: 6),
           ],

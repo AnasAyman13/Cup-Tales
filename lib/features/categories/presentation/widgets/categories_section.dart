@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/categories_cubit.dart';
 import '../cubit/categories_state.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/language_cubit.dart';
 import 'category_card.dart';
 
 class CategoriesSection extends StatelessWidget {
@@ -10,6 +11,7 @@ class CategoriesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageCubit>();
     return BlocBuilder<CategoriesCubit, CategoriesState>(
       builder: (context, state) {
         if (state is CategoriesLoading || state is CategoriesInitial) {

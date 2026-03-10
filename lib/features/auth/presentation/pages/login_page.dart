@@ -53,8 +53,9 @@ class _LoginPageState extends State<LoginPage> {
           // AuthGate handles navigation on AuthAuthenticated.
           // Only show errors here.
           if (state is AuthError) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(state.message)));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         child: Stack(
@@ -66,10 +67,7 @@ class _LoginPageState extends State<LoginPage> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      _kPrimary,
-                      _kPrimary.withBlue(100).withRed(20),
-                    ],
+                    colors: [_kPrimary, _kPrimary.withBlue(100).withRed(20)],
                   ),
                 ),
               ),
@@ -78,272 +76,302 @@ class _LoginPageState extends State<LoginPage> {
             Positioned(
               top: -96,
               left: -96,
-              child:
-                  _GlowBlob(size: 256, color: Colors.white.withOpacity(0.05)),
+              child: _GlowBlob(
+                size: 256,
+                color: Colors.white.withAlpha(13),
+              ),
             ),
             Positioned(
               bottom: -128,
               right: -128,
-              child:
-                  _GlowBlob(size: 384, color: Colors.black.withOpacity(0.10)),
+              child: _GlowBlob(
+                size: 384,
+                color: Colors.black.withAlpha(26),
+              ),
             ),
 
             // ── Content ───────────────────────────────────────────────
             SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height -
-                      MediaQuery.of(context).padding.top -
-                      MediaQuery.of(context).padding.bottom,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // ── Top: Language toggle ──────────────────────
-                      // ── Language toggle ─────────────────────────────
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: BlocBuilder<LanguageCubit, LanguageState>(
-                            builder: (context, langState) {
-                              final isEn = langState.language == AppLanguage.en;
-                              return _LangToggle(isEn: isEn);
-                            },
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: MediaQuery.of(context).size.height -
+                        MediaQuery.of(context).padding.top -
+                        MediaQuery.of(context).padding.bottom,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // ── Top: Language toggle ──────────────────────
+                        // ── Language toggle ─────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: BlocBuilder<LanguageCubit, LanguageState>(
+                              builder: (context, langState) {
+                                final isEn =
+                                    langState.language == AppLanguage.en;
+                                return _LangToggle(isEn: isEn);
+                              },
+                            ),
                           ),
                         ),
-                      ),
 
-                      // ── Logo + headline ────────────────────────────
-                      Column(
-                        children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.25),
-                                  blurRadius: 24,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
-                            ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/images/logo/logo.png',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          Text(
-                            context.tr('Welcome Back', 'مرحباً بعودتك'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 36,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            context.tr('Please sign in to your account',
-                                'من فضلك سجّل دخولك'),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // ── Form ──────────────────────────────────────
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _label(context.loc.email),
-                          const SizedBox(height: 8),
-                          _InputField(
-                            controller: _emailController,
-                            hint: context.tr(
-                                'Enter your email', 'أدخل بريدك الإلكتروني'),
-                            keyboardType: TextInputType.emailAddress,
-                            isArabic: context.isArabic,
-                          ),
-                          const SizedBox(height: 22),
-                          _label(context.loc.password),
-                          const SizedBox(height: 8),
-                          _InputField(
-                            controller: _passwordController,
-                            hint: context.tr(
-                                'Enter your password', 'أدخل كلمة المرور'),
-                            obscure: _obscure,
-                            isArabic: context.isArabic,
-                            suffix: GestureDetector(
-                              onTap: () => setState(() => _obscure = !_obscure),
-                              child: Icon(
-                                _obscure
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: _kSlate400,
-                                size: 22,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: GestureDetector(
-                              onTap: () {
-                                if (_emailController.text.isNotEmpty) {
-                                  context
-                                      .read<AuthCubit>()
-                                      .forgotPassword(_emailController.text);
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text(context.tr(
-                                            'Please enter your email first',
-                                            'يرجى إدخال البريد الإلكتروني أولاً'))),
-                                  );
-                                }
-                              },
-                              child: Text(
-                                context.loc.forgotPassword,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // ── Buttons ───────────────────────────────────
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 32),
-                        child: Column(
+                        // ── Logo + headline ────────────────────────────
+                        Column(
                           children: [
-                            // Sign In
-                            BlocBuilder<AuthCubit, AuthState>(
-                              builder: (context, state) {
-                                if (state is AuthLoading) {
-                                  return const SizedBox(
-                                    height: 64,
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                          color: Colors.white),
-                                    ),
-                                  );
-                                }
-                                return _TappableButton(
-                                  onTap: _login,
-                                  child: Container(
-                                    width: double.infinity,
-                                    height: 64,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(14),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 16,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                      ],
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      context.loc.login,
-                                      style: const TextStyle(
-                                        color: _kPrimary,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 14),
-                            // Google
-                            _TappableButton(
-                              onTap: () =>
-                                  context.read<AuthCubit>().loginWithGoogle(),
-                              child: Container(
-                                width: double.infinity,
-                                height: 64,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CustomPaint(
-                                      size: const Size(24, 24),
-                                      painter: _GoogleLogoPainter(),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      context.tr('Continue with Google',
-                                          'المتابعة مع جوجل'),
-                                      style: const TextStyle(
-                                        color: _kSlate800,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            // Sign up link
-                            RichText(
-                              text: TextSpan(
-                                style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w500),
-                                children: [
-                                  TextSpan(
-                                    text: context.tr("Don't have an account? ",
-                                        'ليس لديك حساب؟ '),
-                                    style:
-                                        const TextStyle(color: Colors.white70),
-                                  ),
-                                  WidgetSpan(
-                                    child: GestureDetector(
-                                      onTap: () => Navigator.pushNamed(
-                                          context, AppRouter.register),
-                                      child: Text(
-                                        context.loc.signUp,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withAlpha(64),
+                                    blurRadius: 24,
+                                    offset: const Offset(0, 8),
                                   ),
                                 ],
+                              ),
+                              child: ClipOval(
+                                child: Image.asset(
+                                  'assets/images/logo/logo.png',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            Text(
+                              context.tr('Welcome Back', 'مرحباً بعودتك'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 36,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              context.tr(
+                                'Please sign in to your account',
+                                'من فضلك سجّل دخولك',
+                              ),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+
+                        // ── Form ──────────────────────────────────────
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _label(context.loc.email),
+                            const SizedBox(height: 8),
+                            _InputField(
+                              controller: _emailController,
+                              hint: context.tr(
+                                'Enter your email',
+                                'أدخل بريدك الإلكتروني',
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              isArabic: context.isArabic,
+                            ),
+                            const SizedBox(height: 22),
+                            _label(context.loc.password),
+                            const SizedBox(height: 8),
+                            _InputField(
+                              controller: _passwordController,
+                              hint: context.tr(
+                                'Enter your password',
+                                'أدخل كلمة المرور',
+                              ),
+                              obscure: _obscure,
+                              isArabic: context.isArabic,
+                              suffix: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _obscure = !_obscure),
+                                child: Icon(
+                                  _obscure
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: _kSlate400,
+                                  size: 22,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (_emailController.text.isNotEmpty) {
+                                    context.read<AuthCubit>().forgotPassword(
+                                          _emailController.text,
+                                        );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          context.tr(
+                                            'Please enter your email first',
+                                            'يرجى إدخال البريد الإلكتروني أولاً',
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Text(
+                                  context.loc.forgotPassword,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // ── Buttons ───────────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 32),
+                          child: Column(
+                            children: [
+                              // Sign In
+                              BlocBuilder<AuthCubit, AuthState>(
+                                builder: (context, state) {
+                                  if (state is AuthLoading) {
+                                    return const SizedBox(
+                                      height: 64,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return _TappableButton(
+                                    onTap: _login,
+                                    child: Container(
+                                      width: double.infinity,
+                                      height: 64,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(14),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withAlpha(51),
+                                            blurRadius: 16,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        context.loc.login,
+                                        style: const TextStyle(
+                                          color: _kPrimary,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 14),
+                              // Google
+                              _TappableButton(
+                                onTap: () =>
+                                    context.read<AuthCubit>().loginWithGoogle(),
+                                child: Container(
+                                  width: double.infinity,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withAlpha(51),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CustomPaint(
+                                        size: const Size(24, 24),
+                                        painter: _GoogleLogoPainter(),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        context.tr(
+                                          'Continue with Google',
+                                          'المتابعة مع جوجل',
+                                        ),
+                                        style: const TextStyle(
+                                          color: _kSlate800,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              // Sign up link
+                              RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: context.tr(
+                                        "Don't have an account? ",
+                                        'ليس لديك حساب؟ ',
+                                      ),
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                    WidgetSpan(
+                                      child: GestureDetector(
+                                        onTap: () => Navigator.pushNamed(
+                                          context,
+                                          AppRouter.register,
+                                        ),
+                                        child: Text(
+                                          context.loc.signUp,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -399,8 +427,10 @@ class _InputField extends StatelessWidget {
         hintStyle: const TextStyle(color: _kSlate400, fontSize: 15),
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 18,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
@@ -414,13 +444,12 @@ class _InputField extends StatelessWidget {
           borderSide: const BorderSide(color: Colors.white54, width: 2),
         ),
         suffixIcon: suffix != null
-            ? Padding(
-                padding: const EdgeInsets.only(right: 14),
-                child: suffix,
-              )
+            ? Padding(padding: const EdgeInsets.only(right: 14), child: suffix)
             : null,
-        suffixIconConstraints:
-            const BoxConstraints(minWidth: 40, minHeight: 40),
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: 40,
+          minHeight: 40,
+        ),
       ),
     );
   }
@@ -475,11 +504,23 @@ class _GoogleLogoPainter extends CustomPainter {
         ..lineTo(12 * s, 14.26 * s)
         ..lineTo(17.92 * s, 14.26 * s)
         ..cubicTo(
-            17.66 * s, 15.63 * s, 16.88 * s, 16.79 * s, 15.71 * s, 17.57 * s)
+          17.66 * s,
+          15.63 * s,
+          16.88 * s,
+          16.79 * s,
+          15.71 * s,
+          17.57 * s,
+        )
         ..lineTo(15.71 * s, 20.34 * s)
         ..lineTo(19.28 * s, 20.34 * s)
         ..cubicTo(
-            21.36 * s, 18.42 * s, 22.56 * s, 15.60 * s, 22.56 * s, 12.25 * s)
+          21.36 * s,
+          18.42 * s,
+          22.56 * s,
+          15.60 * s,
+          22.56 * s,
+          12.25 * s,
+        )
         ..close(),
       p,
     );
@@ -545,10 +586,7 @@ class _GlowBlob extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }
@@ -563,7 +601,7 @@ class _LangToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withAlpha(38),
         borderRadius: BorderRadius.circular(24),
       ),
       padding: const EdgeInsets.all(3),

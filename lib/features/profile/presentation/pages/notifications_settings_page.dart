@@ -69,7 +69,7 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
                 child: Column(
                   children: [
                     SwitchListTile(
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                       title: Text(
                         context.tr('Push Notifications', 'إشعارات الهاتف'),
                         style: const TextStyle(
@@ -88,7 +88,7 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
                     ),
                     const Divider(height: 1),
                     SwitchListTile(
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                       title: Text(
                         context.tr('Email Offers', 'عروض البريد الإلكتروني'),
                         style: const TextStyle(

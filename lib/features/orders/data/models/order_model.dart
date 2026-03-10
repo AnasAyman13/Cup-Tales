@@ -6,6 +6,7 @@ class OrderModel extends OrderEntity {
     required super.userId,
     required super.productId,
     required super.productName,
+    super.productNameAr,
     required super.productImage,
     required super.price,
     required super.quantity,
@@ -23,6 +24,8 @@ class OrderModel extends OrderEntity {
       productName: products?['name'] as String? ??
           json['product_name'] as String? ??
           'Unknown Product',
+      productNameAr:
+          products?['name_ar'] as String? ?? json['product_name_ar'] as String?,
       productImage: products?['image'] as String? ??
           products?['image_url'] as String? ??
           json['product_image'] as String? ??
@@ -44,6 +47,7 @@ class OrderModel extends OrderEntity {
       'user_id': userId,
       'product_id': productId,
       'product_name': productName,
+      'product_name_ar': productNameAr,
       'product_image': productImage,
       'price': price,
       'quantity': quantity,

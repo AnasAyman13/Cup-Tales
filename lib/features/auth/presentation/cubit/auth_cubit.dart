@@ -74,8 +74,9 @@ class AuthCubit extends Cubit<AuthState> {
             _hive.profileBox.put('current_user', profile);
           }
         } catch (e) {
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint('[AuthCubit] upsert/cache failed silently: $e');
+          }
         }
 
         try {

@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/product_entity.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../features/cart/presentation/cubit/cart_cubit.dart';
+import '../../../../features/cart/presentation/cubit/cart_state.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/language_cubit.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final ProductEntity product;
@@ -26,12 +28,15 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   void initState() {
     super.initState();
     // Dynamically detect which sizes have prices mapped in Supabase
-    if (widget.product.priceS != null)
+    if (widget.product.priceS != null) {
       _availableSizes['S'] = widget.product.priceS!;
-    if (widget.product.priceM != null)
+    }
+    if (widget.product.priceM != null) {
       _availableSizes['M'] = widget.product.priceM!;
-    if (widget.product.priceL != null)
+    }
+    if (widget.product.priceL != null) {
       _availableSizes['L'] = widget.product.priceL!;
+    }
 
     // Auto-select the first available size (Defaults to M if exists)
     if (_availableSizes.containsKey('M')) {
@@ -182,6 +187,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageCubit>();
     final displayName = context.tr(
       widget.product.name,
       widget.product.nameAr ?? widget.product.name,
@@ -194,6 +200,31 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        actions: [
+          BlocBuilder<CartCubit, CartState>(
+            builder: (context, state) {
+              int itemCount = 0;
+              if (state is CartLoaded) {
+                itemCount =
+                    state.items.fold(0, (sum, item) => sum + item.quantity);
+              }
+              return IconButton(
+                icon: Badge(
+                  isLabelVisible: itemCount > 0,
+                  label: Text(itemCount.toString()),
+                  backgroundColor: Colors.red,
+                  offset: const Offset(4, -4),
+                  child: const Icon(
+                    Icons.shopping_bag_outlined,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                onPressed: () => Navigator.pushNamed(context, '/cart'),
+              );
+            },
+          ),
+          const SizedBox(width: 6),
+        ],
       ),
       extendBodyBehindAppBar: true,
       body: SingleChildScrollView(

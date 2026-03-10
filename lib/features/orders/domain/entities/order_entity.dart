@@ -5,6 +5,7 @@ class OrderEntity extends Equatable {
   final String userId;
   final String productId;
   final String productName;
+  final String? productNameAr;
   final String productImage;
   final double price;
   final int quantity;
@@ -16,6 +17,7 @@ class OrderEntity extends Equatable {
     required this.userId,
     required this.productId,
     required this.productName,
+    this.productNameAr,
     required this.productImage,
     required this.price,
     required this.quantity,
@@ -29,6 +31,7 @@ class OrderEntity extends Equatable {
         userId,
         productId,
         productName,
+        productNameAr,
         productImage,
         price,
         quantity,

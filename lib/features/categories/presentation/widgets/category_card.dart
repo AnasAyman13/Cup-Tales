@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/config/supabase_config.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/language_cubit.dart';
 import '../../domain/entities/category_entity.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CategoryCard extends StatelessWidget {
   final CategoryEntity category;
@@ -18,6 +20,7 @@ class CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageCubit>();
     return GestureDetector(
       onTap: onTap,
       child: AnimatedScale(
@@ -87,10 +90,7 @@ class CategoryCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                context.tr(
-                  category.name,
-                  category.nameAr,
-                ),
+                context.isArabic ? category.nameAr : category.nameEn,
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

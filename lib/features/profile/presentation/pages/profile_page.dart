@@ -9,8 +9,36 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  late Future<Map<String, dynamic>?> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  void _loadProfile() {
+    final user = Supabase.instance.client.auth.currentUser;
+    _profileFuture = Supabase.instance.client
+        .from('profiles')
+        .select()
+        .eq('id', user?.id ?? '')
+        .maybeSingle();
+  }
+
+  void _refreshProfile() {
+    setState(() {
+      _loadProfile();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,11 +61,7 @@ class ProfilePage extends StatelessWidget {
         ),
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
-        future: Supabase.instance.client
-            .from('profiles')
-            .select()
-            .eq('id', user?.id ?? '')
-            .maybeSingle(),
+        future: _profileFuture,
         builder: (context, snapshot) {
           final profile = snapshot.data;
           final userName = profile?['name'] as String? ??
@@ -52,6 +76,7 @@ class ProfilePage extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 120),
             child: Column(
               children: [
+                // 1. User Info Section
                 Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -75,20 +100,39 @@ class ProfilePage extends StatelessWidget {
                       ),
                       if (userPhone != null && userPhone.isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text(
-                          userPhone,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey.shade500,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              userPhone,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () {
+                                Navigator.pushNamed(
+                                        context, AppRouter.personalInfo)
+                                    .then((_) => _refreshProfile());
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: const Padding(
+                                padding: EdgeInsets.all(4.0),
+                                child: Icon(Icons.edit,
+                                    size: 16, color: AppColors.primary),
+                              ),
+                            ),
+                          ],
                         ),
                       ] else ...[
                         const SizedBox(height: 12),
                         TextButton.icon(
                           onPressed: () {
-                            Navigator.pushNamed(
-                                context, AppRouter.personalInfo);
+                            Navigator.pushNamed(context, AppRouter.personalInfo)
+                                .then((_) => _refreshProfile());
                           },
                           icon: const Icon(Icons.add_call, size: 18),
                           label: Text(context.tr(
@@ -106,6 +150,8 @@ class ProfilePage extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                // 2. Account Settings
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Column(
@@ -133,9 +179,12 @@ class ProfilePage extends StatelessWidget {
                               subtitle: context.loc.personalInfoSubtitle,
                               onTap: () {
                                 Navigator.pushNamed(
-                                    context, AppRouter.personalInfo);
+                                        context, AppRouter.personalInfo)
+                                    .then((_) => _refreshProfile());
                               },
                             ),
+                            const _Divider(),
+                            const _LanguageTile(),
                             const _Divider(),
                             _SettingsTile(
                               icon: Icons.notifications,
@@ -146,12 +195,12 @@ class ProfilePage extends StatelessWidget {
                                     context, AppRouter.notifications);
                               },
                             ),
-                            const _Divider(),
-                            const _LanguageTile(),
                           ],
                         ),
                       ),
                       const SizedBox(height: 32),
+
+                      // 3. Support / Information
                       _SectionHeader(title: context.loc.support),
                       Container(
                         decoration: BoxDecoration(
@@ -169,6 +218,18 @@ class ProfilePage extends StatelessWidget {
                         child: Column(
                           children: [
                             _SettingsTile(
+                              icon: Icons.map,
+                              title: context.tr('Our Branches', 'فروعنا'),
+                              subtitle: context.tr('Find a branch near you',
+                                  'ابحث عن فرع قريب منك'),
+                              showChevron: true,
+                              onTap: () {
+                                Navigator.pushNamed(
+                                    context, AppRouter.branches);
+                              },
+                            ),
+                            const _Divider(),
+                            _SettingsTile(
                               icon: Icons.shield,
                               title: context.loc.privacyPolicy,
                               onTap: () {
@@ -176,26 +237,43 @@ class ProfilePage extends StatelessWidget {
                                     context, AppRouter.privacyPolicy);
                               },
                             ),
-                            const _Divider(),
-                            _SettingsTile(
-                              icon: Icons.logout,
-                              title: context.loc.logout,
-                              titleColor: Colors.red.shade500,
-                              iconBackgroundColor: Colors.red.shade50,
-                              iconColor: Colors.red.shade500,
-                              showChevron: false,
-                              onTap: () async {
-                                await context.read<AuthCubit>().logout();
-                                if (context.mounted) {
-                                  Navigator.pushNamedAndRemoveUntil(
-                                    context,
-                                    AppRouter.login,
-                                    (route) => false,
-                                  );
-                                }
-                              },
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+
+                      // 4. Logout
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border:
+                              Border.all(color: Colors.red.shade100, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.shade50.withOpacity(0.5),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
                             ),
                           ],
+                        ),
+                        child: _SettingsTile(
+                          icon: Icons.logout,
+                          title: context.loc.logout,
+                          titleColor: Colors.red.shade600,
+                          iconBackgroundColor: Colors.red.shade50,
+                          iconColor: Colors.red.shade600,
+                          showChevron: false,
+                          onTap: () async {
+                            await context.read<AuthCubit>().logout();
+                            if (context.mounted) {
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                AppRouter.login,
+                                (route) => false,
+                              );
+                            }
+                          },
                         ),
                       ),
                     ],
@@ -218,7 +296,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 12),
+      padding: const EdgeInsets.only(left: 8, bottom: 12, right: 8),
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
@@ -317,7 +395,7 @@ class _SettingsTile extends StatelessWidget {
               ),
             ),
             if (showChevron)
-              Icon(Icons.chevron_right, color: Colors.grey.shade300),
+              Icon(Icons.chevron_right, color: Colors.grey.shade300, size: 20),
           ],
         ),
       ),

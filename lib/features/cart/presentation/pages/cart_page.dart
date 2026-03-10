@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/supabase_cart_item.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/language_cubit.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -24,15 +26,17 @@ class _CartPageState extends State<CartPage> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageCubit>();
     return Scaffold(
       backgroundColor: _bgColor,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Your Cart',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        title: Text(
+          context.tr('Your Cart', 'سلة المشتريات'),
+          style:
+              const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
@@ -40,8 +44,9 @@ class _CartPageState extends State<CartPage> {
         listener: (context, state) {
           if (state is CartCheckedOut) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('🎉 Order placed successfully!'),
+              SnackBar(
+                content: Text(context.tr('🎉 Order placed successfully!',
+                    '🎉 تم تأكيد الطلب بنجاح!')),
                 backgroundColor: Colors.green,
                 behavior: SnackBarBehavior.floating,
               ),
@@ -67,8 +72,9 @@ class _CartPageState extends State<CartPage> {
                   const SizedBox(height: 16),
                   Text(
                     state is CartCheckingOut
-                        ? 'Placing your order...'
-                        : 'Loading cart...',
+                        ? context.tr(
+                            'Placing your order...', 'جاري تأكيد طلبك...')
+                        : context.tr('Loading cart...', 'جاري تحميل السلة...'),
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ],
@@ -85,7 +91,8 @@ class _CartPageState extends State<CartPage> {
                     Icon(Icons.shopping_cart_outlined,
                         size: 80, color: Colors.grey.shade300),
                     const SizedBox(height: 16),
-                    Text('Your cart is empty',
+                    Text(
+                        context.tr('Your cart is empty', 'سلة المشتريات فارغة'),
                         style: TextStyle(
                             color: Colors.grey.shade400, fontSize: 16)),
                   ],
@@ -105,9 +112,7 @@ class _CartPageState extends State<CartPage> {
                     child: ListView(
                       padding: const EdgeInsets.all(20),
                       children: [
-                        ...state.items
-                            .map((item) => _CartItemCard(item: item))
-                            .toList(),
+                        ...state.items.map((item) => _CartItemCard(item: item)),
                         const SizedBox(height: 20),
                         _PromoCodeInput(),
                       ],
@@ -141,8 +146,8 @@ class _CartPageState extends State<CartPage> {
                     onPressed: () => context.read<CartCubit>().loadCart(),
                     style: ElevatedButton.styleFrom(
                         backgroundColor: _primaryColor),
-                    child: const Text('Retry',
-                        style: TextStyle(color: Colors.white)),
+                    child: Text(context.loc.retry,
+                        style: const TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -310,22 +315,23 @@ class _OrderSummary extends StatelessWidget {
       child: Column(
         children: [
           _SummaryRow(
-              label: 'Subtotal', value: '\$${subtotal.toStringAsFixed(2)}'),
+              label: context.tr('Subtotal', 'المجموع الفرعي'),
+              value: '\$${subtotal.toStringAsFixed(2)}'),
           if (discount > 0) ...[
             const SizedBox(height: 6),
             _SummaryRow(
-              label: 'Discount',
+              label: context.tr('Discount', 'الخصم'),
               value: '-\$${discount.toStringAsFixed(2)}',
               valueColor: Colors.green,
             ),
           ],
           const SizedBox(height: 6),
           _SummaryRow(
-              label: 'Delivery Fee',
+              label: context.tr('Delivery Fee', 'رسوم التوصيل'),
               value: '\$${deliveryFee.toStringAsFixed(2)}'),
           const Divider(height: 24),
           _SummaryRow(
-            label: 'Total',
+            label: context.tr('Total', 'الإجمالي'),
             value: '\$${(total > 0 ? total : 0.0).toStringAsFixed(2)}',
             bold: true,
             valueColor: _primaryColor,
@@ -341,9 +347,9 @@ class _OrderSummary extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16)),
               ),
               onPressed: () => Navigator.pushNamed(context, '/checkout'),
-              child: const Text(
-                'Checkout',
-                style: TextStyle(
+              child: Text(
+                context.tr('Checkout', 'إتمام الطلب'),
+                style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold),
@@ -384,10 +390,10 @@ class _PromoCodeInputState extends State<_PromoCodeInput> {
           Expanded(
             child: TextField(
               controller: _controller,
-              decoration: const InputDecoration(
-                hintText: 'Enter Promo Code',
+              decoration: InputDecoration(
+                hintText: context.tr('Enter Promo Code', 'أدخل كود الخصم'),
                 border: InputBorder.none,
-                hintStyle: TextStyle(fontSize: 14),
+                hintStyle: const TextStyle(fontSize: 14),
               ),
             ),
           ),
@@ -399,9 +405,9 @@ class _PromoCodeInputState extends State<_PromoCodeInput> {
                     .applyPromoCode(_controller.text.trim());
               }
             },
-            child: const Text(
-              'Apply',
-              style: TextStyle(
+            child: Text(
+              context.tr('Apply', 'تطبيق'),
+              style: const TextStyle(
                 color: Color(0xFF2D3194),
                 fontWeight: FontWeight.bold,
               ),

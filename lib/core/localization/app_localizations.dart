@@ -84,6 +84,12 @@ class AppLocalizations {
       ? 'تم استلام طلبك وتأكيد الدفع بنجاح.'
       : 'Your order has been received and payment confirmed.';
   String get backToHome => isAr ? 'العودة للرئيسية' : 'Back to Home';
+  String get paymentInfoCash => isAr
+      ? 'سيتم الدفع نقداً عند استلام الطلب من الفرع.'
+      : 'You will pay in cash upon receiving your order at the branch.';
+  String get paymentInfoVisa => isAr
+      ? 'الدفع الإلكتروني عبر البطاقات البنكية سيكون متاحاً قريباً.'
+      : 'Online card payment will be available soon.';
 
   // ─── Profile ──────────────────────────────────────────
   String get cupTalesProfile => isAr ? 'الملف الشخصي' : 'Cup Tales Profile';
@@ -123,7 +129,7 @@ class AppLocalizations {
 extension LocalizationHelper on BuildContext {
   /// Backward compatibility layer bridging the new AppLocalizations Delegate
   /// with the `context.tr()` convenience extension used previously.
-  bool get isArabic => read<LanguageCubit>().state.language == AppLanguage.ar;
+  bool get isArabic => watch<LanguageCubit>().state.language == AppLanguage.ar;
   String tr(String en, String ar) {
     if (isArabic && ar.trim().isNotEmpty) return ar.trim();
     return en.trim();

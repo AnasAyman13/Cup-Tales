@@ -39,7 +39,9 @@ class _CupTalesAppState extends State<CupTalesApp> {
     // Start cubit work — all deferred via di.appReady, zero cost right now.
     _languageCubit.load();
     _authCubit.onAppStart();
-    _cartCubit.loadCart();
+    di.appReady.then((_) {
+      if (mounted) _cartCubit.loadCart();
+    });
 
     // Listen for language changes to update MaterialApp.locale
     _languageCubit.stream.listen((state) {

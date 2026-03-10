@@ -34,7 +34,9 @@ class CategoriesRemoteDSImpl implements CategoriesRemoteDS {
       final jsonCat = rawCat as Map<String, dynamic>;
       final catId = jsonCat['id'].toString();
       final catNameEn =
-          (jsonCat['name']?.toString() ?? '').toLowerCase().trim();
+          (jsonCat['name_en']?.toString() ?? jsonCat['name']?.toString() ?? '')
+              .toLowerCase()
+              .trim();
       final catNameAr = (jsonCat['name_ar']?.toString() ?? '').trim();
 
       // Find a matching cover image in the products list

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/language_cubit.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class PaymentSuccessPage extends StatelessWidget {
   const PaymentSuccessPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageCubit>();
     return Scaffold(
       body: Center(
         child: Padding(

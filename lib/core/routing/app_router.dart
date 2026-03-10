@@ -14,6 +14,7 @@ import '../../features/profile/presentation/pages/personal_info_page.dart';
 import '../../features/profile/presentation/pages/notifications_settings_page.dart';
 import '../../features/profile/presentation/pages/privacy_policy_page.dart';
 import '../../features/orders/presentation/pages/orders_page.dart';
+import '../../features/profile/presentation/pages/branches_page.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -31,6 +32,7 @@ class AppRouter {
   static const String notifications = '/notifications';
   static const String privacyPolicy = '/privacy-policy';
   static const String orders = '/orders';
+  static const String branches = '/branches';
 
   static Route<dynamic>? generateRoute(RouteSettings settings) {
     debugPrint('\n[AppRouter] generateRoute -> ${settings.name}');
@@ -91,6 +93,9 @@ class AppRouter {
 
       case orders:
         return MaterialPageRoute(builder: (_) => const OrdersPage());
+
+      case branches:
+        return MaterialPageRoute(builder: (_) => const BranchesPage());
 
       default:
         return null; // Triggers onUnknownRoute in MaterialApp
