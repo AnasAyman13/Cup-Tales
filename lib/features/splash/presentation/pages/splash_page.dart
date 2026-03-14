@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/splash_cubit.dart';
@@ -6,9 +6,8 @@ import '../cubit/splash_state.dart';
 import '../../../../core/routing/app_router.dart';
 
 // ── Palette ────────────────────────────────────────────────────────────────
-const Color _bg = Color(0xFF1A1D6E); // brand purple
-const Color _coffee =
-    Color(0xFFD4832A); // warm amber — unmistakably different from bg
+const Color _bg = Color(0xFF2D3194); // Brand blue
+const Color _liquid = Color(0xFF4A4FBF); // Lighter blue for liquid
 const Color _steam = Colors.white;
 
 // =============================================================================
@@ -21,18 +20,15 @@ class SplashPage extends StatefulWidget {
   State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage>
-    with SingleTickerProviderStateMixin {
+class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   late AnimationController _ctrl;
+  late AnimationController _bgCtrl; // For background drift
 
-  // Cup outline draws itself: 0 → 20% of timeline = first 600ms
   late Animation<double> _cupReveal;
-  // Liquid starts at 5% (150ms) and finishes at 78% (2340ms)
   late Animation<double> _fillLevel;
-  // Wave phase continuously moves — gives the liquid surface movement
   late Animation<double> _wave;
-  // Logo + tagline appear only near the very end
   late Animation<double> _logoFade;
+  late Animation<double> _bgOpacity;
 
   late SplashCubit _cubit;
   SplashState? _pendingState;
@@ -53,12 +49,15 @@ class _SplashPageState extends State<SplashPage>
     super.initState();
 
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 3200));
+        vsync: this, duration: const Duration(milliseconds: 3000));
+    _bgCtrl = AnimationController(
+        vsync: this, duration: const Duration(seconds: 20));
 
-    _cupReveal = _interval(_ctrl, 0.00, 0.20, Curves.easeOut);
-    _fillLevel = _interval(_ctrl, 0.05, 0.78, Curves.easeInOut);
-    _wave = Tween<double>(begin: 0.0, end: 6.0).animate(_ctrl);
-    _logoFade = _interval(_ctrl, 0.78, 0.96, Curves.easeIn);
+    _bgOpacity = _interval(_ctrl, 0.0, 0.2, Curves.easeIn);
+    _cupReveal = _interval(_ctrl, 0.0, 0.3, Curves.easeOut);
+    _fillLevel = _interval(_ctrl, 0.1, 0.8, Curves.easeInOut);
+    _wave = Tween<double>(begin: 0.0, end: 2 * pi).animate(_ctrl);
+    _logoFade = _interval(_ctrl, 0.8, 0.95, Curves.easeIn);
 
     _cubit = SplashCubit();
 
@@ -67,18 +66,18 @@ class _SplashPageState extends State<SplashPage>
 
       _ctrl.forward().then((_) {
         if (!mounted || _hasNavigated) return;
-        Future.delayed(const Duration(milliseconds: 400), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted || _hasNavigated) return;
           setState(() => _navReady = true);
           _tryNav();
         });
       });
-
+      _bgCtrl.repeat();
       _cubit.initSplash();
     });
 
-    // Hard safety fallback — never let the splash hang forever
-    Future.delayed(const Duration(seconds: 10), () {
+    // Safety fallback
+    Future.delayed(const Duration(seconds: 8), () {
       if (!mounted || _hasNavigated) return;
       setState(() => _navReady = true);
       _pendingState ??= SplashNavigateToHome();
@@ -98,6 +97,7 @@ class _SplashPageState extends State<SplashPage>
   @override
   void dispose() {
     _ctrl.dispose();
+    _bgCtrl.dispose();
     _cubit.close();
     super.dispose();
   }
@@ -114,55 +114,70 @@ class _SplashPageState extends State<SplashPage>
         child: Scaffold(
           backgroundColor: _bg,
           body: AnimatedBuilder(
-            animation: _ctrl,
+            animation: Listenable.merge([_ctrl, _bgCtrl]),
             builder: (context, _) {
               return Stack(
-                alignment: Alignment.center,
                 children: [
-                  // ── Main cup + liquid ──────────────────────────────────
-                  Center(
+                   // ── Background Illustrations ───────────────────────────
+                  Positioned.fill(
                     child: CustomPaint(
-                      painter: _CupPainter(
-                        cupReveal: _cupReveal.value,
-                        fillLevel: _fillLevel.value,
-                        wavePhase: _wave.value,
+                      painter: _BgPainter(
+                        t: _bgCtrl.value,
+                        opacity: _bgOpacity.value,
                       ),
-                      size: const Size(270, 330),
                     ),
                   ),
 
-                  // ── Logo fades in at the end, centered above tagline ──
-                  Opacity(
-                    opacity: _logoFade.value,
-                    child: Transform.scale(
-                      scale: 1.0 +
-                          0.2 * _logoFade.value, // Increased from 0.85/0.15
-                      child: SizedBox(
-                        width: 120, // Increased from 90
-                        height: 120,
-                        child: Image.asset(
-                          'assets/images/logo/logo.png', // Using the main logo for clarity
-                          fit: BoxFit.contain,
-                          gaplessPlayback: true,
+                  // ── Main Content ───────────────────────────────────────
+                  Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Cup + Liquid
+                        CustomPaint(
+                          painter: _CupPainter(
+                            cupReveal: _cupReveal.value,
+                            fillLevel: _fillLevel.value,
+                            wavePhase: _wave.value,
+                          ),
+                          size: const Size(200, 240),
                         ),
-                      ),
+
+                        // Logo fades in at the end
+                        Opacity(
+                          opacity: _logoFade.value,
+                          child: Transform.scale(
+                            scale: 0.8 + 0.2 * _logoFade.value,
+                            child: SizedBox(
+                              width: 100,
+                              height: 100,
+                              child: Image.asset(
+                                'assets/images/logo/logo.png',
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
 
                   // ── Tagline ───────────────────────────────────────────
                   Positioned(
                     bottom: 60,
+                    left: 0,
+                    right: 0,
                     child: Opacity(
                       opacity: _logoFade.value,
                       child: const Text(
                         'CUP TALES',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 22, // Increased from 20
+                          fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: 10, // Increased from 7
-                          fontFamily:
-                              'Inter', // Assuming standard clean fonts are available
+                          letterSpacing: 8,
+                          fontFamily: 'Inter',
                         ),
                       ),
                     ),
@@ -178,7 +193,7 @@ class _SplashPageState extends State<SplashPage>
 }
 
 // =============================================================================
-// CUP PAINTER — all geometry derived from `size`, never hardcoded
+// CUP PAINTER
 // =============================================================================
 
 class _CupPainter extends CustomPainter {
@@ -196,16 +211,15 @@ class _CupPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final lidH = h * 0.09; // lid height = 9% of total height
-    final br = w * 0.092; // corner radius
+    final lidH = h * 0.1;
+    final br = w * 0.1;
 
-    final tl = w * 0.08;
-    final tr = w * 0.92;
-    final bl = w * 0.16;
-    final br2 = w * 0.84;
+    final tl = w * 0.1;
+    final tr = w * 0.9;
+    final bl = w * 0.18;
+    final br2 = w * 0.82;
     final bot = h - 2.0;
 
-    // ── Build paths based on actual canvas size ──────────────────────────────
     final bodyPath = Path()
       ..moveTo(tl, lidH)
       ..lineTo(bl, bot - br)
@@ -219,39 +233,34 @@ class _CupPainter extends CustomPainter {
 
     final lidPath = Path()
       ..addRRect(RRect.fromLTRBR(
-          w * 0.04, 0, w * 0.96, lidH, const Radius.circular(8)));
+          w * 0.05, 0, w * 0.95, lidH, const Radius.circular(8)));
 
-    // ── 1. Ghost cup body fill — subtle indicator of cup shape ───────────────
+    // 1. Ghost body
     canvas.drawPath(
       bodyPath,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.12)
-        ..style = PaintingStyle.fill,
+      Paint()..color = Colors.white.withOpacity(0.05),
     );
 
-    // ── 2. Coffee liquid fill — BOLD amber, clearly visible ──────────────────
+    // 2. Liquid Fill
     if (fillLevel > 0) {
       canvas.save();
       canvas.clipPath(bodyPath);
 
-      final bodyH = h - lidH - 2.0;
-      final surfaceY = lidH + bodyH * (1.0 - fillLevel);
-      final waveAmp = 7.0 * sin(fillLevel * pi).clamp(0.1, 1.0);
+      final surfaceY = lidH + (h - lidH) * (1.0 - fillLevel);
+      final waveAmp = 6.0 * sin(fillLevel * pi).clamp(0.1, 1.0);
 
       final liqPath = Path()
-        ..moveTo(0, h)
-        ..lineTo(0, surfaceY);
-      for (double x = 0; x <= w; x += 3) {
+        ..moveTo(-20, h + 20)
+        ..lineTo(-20, surfaceY);
+      
+      for (double x = 0; x <= w; x += 5) {
         liqPath.lineTo(
           x,
-          surfaceY + sin((x / w * 2 * pi) + wavePhase * 2 * pi) * waveAmp,
+          surfaceY + sin((x / w * 2 * pi) + wavePhase) * waveAmp,
         );
       }
-      liqPath
-        ..lineTo(w, h)
-        ..close();
+      liqPath..lineTo(w + 20, surfaceY)..lineTo(w + 20, h + 20)..close();
 
-      // Main coffee fill with gradient
       canvas.drawPath(
         liqPath,
         Paint()
@@ -259,91 +268,146 @@ class _CupPainter extends CustomPainter {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              _coffee.withValues(alpha: 0.95),
-              const Color(0xFF8B4513)
-                  .withValues(alpha: 0.95), // Deeper brown at bottom
+              _liquid.withOpacity(0.8),
+              _bg.withOpacity(0.9),
             ],
-          ).createShader(Rect.fromLTRB(0, surfaceY - waveAmp, w, h))
-          ..style = PaintingStyle.fill,
+          ).createShader(Rect.fromLTWH(0, surfaceY - 10, w, h - surfaceY + 10)),
       );
-
-      // Bright highlight at the liquid surface
-      canvas.drawPath(
-        liqPath,
-        Paint()
-          ..color = const Color(0xFFF5DEB3).withValues(alpha: 0.35)
-          ..style = PaintingStyle.fill
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
-      );
-
       canvas.restore();
     }
 
-    // ── 3. Cup outline — draws itself progressively, high contrast ───────────
+    // 3. Outline
     if (cupReveal > 0) {
-      final outlinePaint = Paint()
-        ..color = _steam.withValues(alpha: 0.92)
+      final paint = Paint()
+        ..color = Colors.white.withOpacity(0.4)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round;
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round;
 
       for (final m in bodyPath.computeMetrics()) {
-        canvas.drawPath(m.extractPath(0, m.length * cupReveal), outlinePaint);
+        canvas.drawPath(m.extractPath(0, m.length * cupReveal), paint);
       }
       for (final m in lidPath.computeMetrics()) {
-        canvas.drawPath(m.extractPath(0, m.length * cupReveal), outlinePaint);
+        canvas.drawPath(m.extractPath(0, m.length * cupReveal), paint);
       }
     }
 
-    // ── 4. Steam wisps — appear once cup is 30%+ full ───────────────────────
-    if (fillLevel > 0.30) {
-      final steamOp = ((fillLevel - 0.30) / 0.70).clamp(0.0, 1.0);
-      _drawSteam(canvas, size, steamOp, wavePhase);
+    // 4. Steam
+    if (fillLevel > 0.4) {
+      final steamOp = ((fillLevel - 0.4) / 0.6).clamp(0.0, 1.0);
+      _drawSteam(canvas, size, steamOp);
     }
   }
 
-  void _drawSteam(Canvas canvas, Size size, double opacity, double phase) {
+  void _drawSteam(Canvas canvas, Size size, double opacity) {
     final cx = size.width / 2;
-    final topY = size.height * 0.06;
-
-    const offsets = [-28.0, 0.0, 28.0];
-    const phases = [0.0, 0.35, 0.70];
-
+    const offsets = [-20.0, 0.0, 20.0];
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0
+      ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
 
     for (int i = 0; i < 3; i++) {
-      final p = (phase / 6.0 + phases[i]) % 1.0;
-      final fade = sin(p * pi).clamp(0.0, 1.0);
-      final alpha = fade * opacity * 0.72;
-      if (alpha < 0.02) continue;
+        final p = (wavePhase / (2 * pi) + (i * 0.33)) % 1.0;
+        final alpha = sin(p * pi) * opacity * 0.3;
+        if (alpha < 0.01) continue;
+        paint.color = _steam.withOpacity(alpha);
 
-      paint.color = _steam.withValues(alpha: alpha);
-      final x = cx + offsets[i];
-      final endY = topY - 40 - p * 50;
+        final x = cx + offsets[i] + sin(p * 2 * pi) * 10;
+        final yStart = -10.0;
+        final yEnd = -60.0 - p * 30;
 
-      canvas.drawPath(
-        Path()
-          ..moveTo(x, topY)
-          ..cubicTo(
-            x + 14 * sin(p * pi),
-            topY - (topY - endY) * 0.35,
-            x - 14 * sin(p * pi + 1.0),
-            topY - (topY - endY) * 0.70,
-            x,
-            endY,
-          ),
-        paint,
-      );
+        canvas.drawPath(
+          Path()
+            ..moveTo(cx + offsets[i], yStart)
+            ..quadraticBezierTo(x, (yStart + yEnd) / 2, cx + offsets[i], yEnd),
+          paint,
+        );
     }
   }
 
   @override
-  bool shouldRepaint(covariant _CupPainter old) =>
-      old.cupReveal != cupReveal ||
-      old.fillLevel != fillLevel ||
-      old.wavePhase != wavePhase;
+  bool shouldRepaint(covariant _CupPainter old) => true;
+}
+
+// =============================================================================
+// BACKGROUND PAINTER (Decorative Illustrations)
+// =============================================================================
+
+class _BgPainter extends CustomPainter {
+  final double t;
+  final double opacity;
+
+  _BgPainter({required this.t, required this.opacity});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (opacity <= 0) return;
+
+    final rng = Random(42);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    for (int i = 0; i < 12; i++) {
+      final x = rng.nextDouble() * size.width;
+      final y = rng.nextDouble() * size.height;
+      final scale = 0.5 + rng.nextDouble() * 0.5;
+      final rot = rng.nextDouble() * 2 * pi + t * pi;
+      
+      paint.color = Colors.white.withOpacity(0.05 * opacity);
+      
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(rot);
+      canvas.scale(scale);
+
+      final type = i % 4;
+      if (type == 0) {
+        _drawBean(canvas, paint);
+      } else if (type == 1) {
+        _drawCroissant(canvas, paint);
+      } else if (type == 2) {
+        _drawCookie(canvas, paint);
+      } else {
+         _drawTinyCup(canvas, paint);
+      }
+      canvas.restore();
+    }
+  }
+
+  void _drawBean(Canvas canvas, Paint paint) {
+    canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: 20, height: 12), paint);
+    canvas.drawPath(Path()..moveTo(-8, 0)..quadraticBezierTo(0, 4, 8, 0), paint);
+  }
+
+  void _drawCroissant(Canvas canvas, Paint paint) {
+    final path = Path()
+      ..moveTo(-15, 0)
+      ..quadraticBezierTo(0, -15, 15, 0)
+      ..quadraticBezierTo(0, 5, -15, 0)
+      ..moveTo(-5, -8)
+      ..lineTo(-3, 0)
+      ..moveTo(0, -10)
+      ..lineTo(0, 0)
+      ..moveTo(5, -8)
+      ..lineTo(3, 0);
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawCookie(Canvas canvas, Paint paint) {
+    canvas.drawCircle(Offset.zero, 12, paint);
+    canvas.drawCircle(const Offset(-4, -4), 1.5, paint..style = PaintingStyle.fill);
+    canvas.drawCircle(const Offset(4, -2), 1.5, paint);
+    canvas.drawCircle(const Offset(0, 5), 1.5, paint);
+    paint.style = PaintingStyle.stroke;
+  }
+
+  void _drawTinyCup(Canvas canvas, Paint paint) {
+    canvas.drawRRect(RRect.fromLTRBR(-8, -10, 8, 8, const Radius.circular(2)), paint);
+    canvas.drawRect(const Rect.fromLTRB(-10, -12, 10, -10), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BgPainter old) => old.t != t || old.opacity != opacity;
 }

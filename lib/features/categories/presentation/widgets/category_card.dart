@@ -21,6 +21,13 @@ class CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageCubit>();
+
+    // Debug translation values
+    print("DEBUG UI: Category ${category.id}");
+    print("EN: ${category.nameEn}");
+    print("AR: ${category.nameAr}");
+    print("Is Arabic: ${context.isArabic}");
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedScale(

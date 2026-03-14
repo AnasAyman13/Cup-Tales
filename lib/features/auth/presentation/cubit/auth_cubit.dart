@@ -13,6 +13,10 @@ class AuthCubit extends Cubit<AuthState> {
   final ProfileService _profileService;
   final HiveService _hive = di.sl<HiveService>();
 
+  /// Completer that resolves once the initial auth state (session restore) is confirmed.
+  /// Used by SplashCubit to avoid navigating before we know if the user is logged in.
+  final Completer<void> initialAuthReady = Completer<void>();
+
   AuthCubit({
     required AuthService authService,
     required ProfileService profileService,
@@ -24,6 +28,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   bool _isInitialStateHandled = false;
+  bool _isGoogleSignInInProgress = false; // Lock to ignore signedOut during Google account switch
   StreamSubscription<supabase.AuthState>? _authSubscription;
 
   void _initAuthStateListener() {
@@ -52,6 +57,7 @@ class AuthCubit extends Cubit<AuthState> {
         } else {
           emit(AuthUnauthenticated());
         }
+        if (!initialAuthReady.isCompleted) initialAuthReady.complete();
       }
       if (event == supabase.AuthChangeEvent.signedIn &&
           session != null &&
@@ -87,6 +93,12 @@ class AuthCubit extends Cubit<AuthState> {
         }
       } else if (event == supabase.AuthChangeEvent.signedOut) {
         _isInitialStateHandled = true;
+        // Ignore signedOut if it was triggered by our own Google account-picker reset.
+        // Without this guard, googleSignIn.signOut() causes a ghost navigation to LoginPage.
+        if (_isGoogleSignInInProgress) {
+          if (kDebugMode) debugPrint('[AuthCubit] signedOut ignored — Google Sign-In in progress');
+          return;
+        }
         if (kDebugMode) debugPrint('[AuthCubit] signed out');
         emit(AuthUnauthenticated());
       } else if (event == supabase.AuthChangeEvent.passwordRecovery) {
@@ -119,6 +131,7 @@ class AuthCubit extends Cubit<AuthState> {
         _isInitialStateHandled = true;
         if (kDebugMode) debugPrint('[AuthCubit] timeout → AuthUnauthenticated');
         emit(AuthUnauthenticated());
+        if (!initialAuthReady.isCompleted) initialAuthReady.complete();
       }
     });
   }
@@ -188,11 +201,36 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> loginWithGoogle() async {
     emit(AuthLoading());
+    _isGoogleSignInInProgress = true;
     try {
       await _authService.signInWithGoogle();
-      // Auth state stream handles the rest after OAuth redirect
+
+      // ── Fallback: manually confirm state ────────────────────────────────────
+      // signInWithIdToken is a direct token exchange — it does NOT reliably fire
+      // a stream 'signedIn' event. Without this, the UI stays stuck on AuthLoading.
+      final session =
+          supabase.Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        if (kDebugMode) {
+          debugPrint('[AuthCubit] Google Sign-In success — manually emitting AuthAuthenticated');
+        }
+        try {
+          final role = await _profileService.getUserRole();
+          emit(AuthAuthenticated(isAdmin: role == 'admin'));
+        } catch (_) {
+          emit(const AuthAuthenticated(isAdmin: false));
+        }
+      } else {
+        // Session missing — something went wrong silently
+        emit(const AuthError('Google Sign-In failed. Please try again.'));
+      }
     } catch (e) {
       emit(AuthError(e.toString().replaceFirst('Exception: ', '')));
+    } finally {
+      // Small trailing delay to ensure all stream events from the account picker reset are swallowed.
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _isGoogleSignInInProgress = false;
+      });
     }
   }
 

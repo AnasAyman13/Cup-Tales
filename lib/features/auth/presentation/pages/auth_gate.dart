@@ -33,9 +33,9 @@ class AuthGate extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           } else if (state is AuthAuthenticated) {
-            return const MainPage(); // main branch: use the full nav shell
+            return MainPage(key: ValueKey('auth_${state.runtimeType}')); 
           } else {
-            return const LoginPage();
+            return LoginPage(key: ValueKey('auth_${state.runtimeType}'));
           }
         },
       ),

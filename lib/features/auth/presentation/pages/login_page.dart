@@ -50,8 +50,10 @@ class _LoginPageState extends State<LoginPage> {
       resizeToAvoidBottomInset: true,
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
-          // AuthGate handles navigation on AuthAuthenticated.
-          // Only show errors here.
+          if (state is AuthAuthenticated) {
+            // Explicit navigation fallback to bypass any reactive lag in AuthGate.
+            Navigator.pushReplacementNamed(context, AppRouter.home);
+          }
           if (state is AuthError) {
             ScaffoldMessenger.of(
               context,
@@ -67,7 +69,10 @@ class _LoginPageState extends State<LoginPage> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [_kPrimary, _kPrimary.withBlue(100).withRed(20)],
+                    colors: [
+                      const Color(0xFF5A5ECA), // Vibrant highlight
+                      _kPrimary,               // Brand blue (0xFF2D3194)
+                    ],
                   ),
                 ),
               ),

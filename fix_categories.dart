@@ -12,51 +12,60 @@ void main() async {
   final data = await client.from('categories').select();
 
   print(
-      'Found \${data.length} categories. Checking for missing Arabic names...');
+      'Found ${data.length} categories. Checking for missing or incorrect Arabic names...');
+
+  // Define a mapping for expected translations
+  final Map<String, String> expectedTranslations = {
+    'iced': 'المشروبات المثلجة',
+    'hot': 'المشروبات الساخنة',
+    'fresh juice': 'العصائر الطبيعية',
+    'smoothie': 'سموثي',
+    'dessert': 'الحلويات',
+    'sweets': 'الحلويات',
+    'bakery': 'المخبوزات',
+    'frappe': 'فرابيه',
+    'milkshake': 'ميلك شيك',
+    'mix soda': 'ميكس صودا',
+    'sundae': 'صانداي',
+  };
 
   for (var category in data) {
     final id = category['id'];
     final nameEn = category['name_en'] ?? category['name'] ?? '';
     final nameAr = category['name_ar'];
+    final lowerNameEn = nameEn.toString().toLowerCase();
 
-    if (nameAr == null || nameAr.toString().trim().isEmpty) {
-      print('Category ID \$id (\$nameEn) is missing Arabic translation.');
+    String? newTranslation;
 
-      String translation = '';
-      final lowerName = nameEn.toString().toLowerCase();
-
-      if (lowerName.contains('iced')) {
-        translation = 'المشروبات المثلجة';
-      } else if (lowerName.contains('hot')) {
-        translation = 'المشروبات الساخنة';
-      } else if (lowerName.contains('fresh juice')) {
-        translation = 'العصائر الطبيعية';
-      } else if (lowerName.contains('smoothie')) {
-        translation = 'سموثي';
-      } else if (lowerName.contains('dessert') ||
-          lowerName.contains('sweets')) {
-        translation = 'الحلويات';
-      } else if (lowerName.contains('bakery')) {
-        translation = 'المخبوزات';
-      } else if (lowerName.contains('frappe')) {
-        translation = 'فرابيه';
-      } else {
-        translation = 'صنف جديد'; // Default fallback
+    // Determine the expected translation based on English name
+    for (var entry in expectedTranslations.entries) {
+      if (lowerNameEn.contains(entry.key)) {
+        newTranslation = entry.value;
+        break;
       }
+    }
 
-      print('  -\> Updating to: \$translation');
+    // Fallback for new categories
+    newTranslation ??= 'صنف جديد';
+
+    // Check if update is needed
+    if (nameAr == null ||
+        nameAr.toString().trim().isEmpty ||
+        nameAr.toString().trim() != newTranslation) {
+      print(
+          'Category ID $id ($nameEn) needs update. Current: "$nameAr", Expected: "$newTranslation"');
 
       try {
         await client
             .from('categories')
-            .update({'name_ar': translation}).eq('id', id);
-        print('  -\> Success.');
+            .update({'name_ar': newTranslation}).eq('id', id);
+        print('  -> Updated to: $newTranslation');
       } catch (e) {
-        print('  -\> Failed: \$e');
+        print('  -> Failed to update: $e');
       }
     } else {
       print(
-          'Category ID \$id (\$nameEn) already has Arabic translation: \$nameAr');
+          'Category ID $id ($nameEn) already has correct Arabic translation: $nameAr');
     }
   }
 

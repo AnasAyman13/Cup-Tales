@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../config/supabase_config.dart';
 
 class AuthService {
   // Lazy getter — Supabase.instance is only accessed when a method is called,
@@ -89,21 +92,69 @@ class AuthService {
 
   Future<void> signInWithGoogle() async {
     try {
-      if (kDebugMode) print('AuthService: Starting Google OAuth');
+      if (kDebugMode) print('AuthService: Starting Native Google Sign-In');
 
-      await _client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'io.supabase.flutter://login-callback/',
+      // 1. Generate a secure random string (rawNonce)
+      final rawNonce = _generateRandomString(16);
+
+      // 2. SHA256 Hashed Nonce for OIDC security
+      final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+
+      // 3. Initialize Google Sign-In
+      // ⚠️ CRITICAL FIX: serverClientId MUST be the WEB CLIENT ID
+      const webClientId =
+          '684663003564-7bb83qfvsvr26to8q1ld7vffvu80cgsn.apps.googleusercontent.com';
+
+      final googleSignIn = GoogleSignIn(
+        // The Android Client ID (from google-services.json) explicitly provided to prevent ApiException 10
+        clientId: '684663003564-984dgpmp15anrmrrc4uo2sd8e78d717t.apps.googleusercontent.com',
+        // The Web Client ID needed by Supabase for server-side validation and token exchange
+        serverClientId: webClientId,
       );
+
+      // 4. Force clear any cached Google session so the account picker always appears
+      await googleSignIn.signOut();
+
+      // 5. Trigger native account picker
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        throw const AuthException('Google sign-in was cancelled');
+      }
+
+      // 5. Get the auth details (IdToken and AccessToken)
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
+
+      if (idToken == null) {
+        throw const AuthException('Could not retrieve Google ID Token.');
+      }
+
+      // 6. Authenticate with Supabase using the rawNonce
+      await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+        nonce: rawNonce,
+      );
+
+      if (kDebugMode) print('AuthService: Native Google Sign-In successful');
     } on AuthException catch (e) {
       if (kDebugMode) {
-        print('AuthService: AuthException during Google OAuth: ${e.message}');
+        print('AuthService: AuthException during Google Sign-In: ${e.message}');
       }
       throw Exception(_parseAuthError(e.message));
     } catch (e) {
-      debugPrint('AuthService: Unexpected error during Google OAuth: $e');
-      throw Exception('Google login error: ${e.toString()}');
+      debugPrint('AuthService: Unexpected error during Google Sign-In: $e');
+      throw Exception('Google Sign-In error: ${e.toString()}');
     }
+  }
+
+  /// Helper to generate a 16-byte random string for the OIDC nonce
+  String _generateRandomString([int length = 16]) {
+    final random = Random.secure();
+    return base64Url
+        .encode(List<int>.generate(length, (_) => random.nextInt(256)));
   }
 
   // ─── Reset Password ───────────────────────────────────────────────────────
@@ -139,6 +190,9 @@ class AuthService {
 
   Future<void> signOut() async {
     try {
+      // Disconnect Google session to allow account re-selection on next login
+      await GoogleSignIn().signOut();
+      // Clear Supabase session
       await _client.auth.signOut();
     } catch (e) {
       throw Exception('Sign out failed.');
@@ -157,9 +211,8 @@ class AuthService {
       await _client.from('profiles').upsert({
         'id': id,
         'email': email,
-        if (name != null) 'name': name,
-        'phone': phone, // Allow null for Google sign-in
-        'created_at': DateTime.now().toIso8601String(),
+        if (name != null && name.isNotEmpty) 'name': name,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
       });
     } catch (e) {
       debugPrint('AuthService: Profile upsert failed: $e');

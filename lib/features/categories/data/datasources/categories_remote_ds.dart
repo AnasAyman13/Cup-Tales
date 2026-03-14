@@ -17,6 +17,12 @@ class CategoriesRemoteDSImpl implements CategoriesRemoteDS {
         .select()
         .order('created_at', ascending: true);
 
+    print('DEBUG: raw categoriesResponse from Supabase count: ${categoriesResponse.length}');
+    if (categoriesResponse.isNotEmpty) {
+      print('DEBUG: First category keys: ${categoriesResponse.first.keys}');
+      print('DEBUG: First category data: ${categoriesResponse.first}');
+    }
+
     // 2. Fetch all potential Category Covers from the products table
     // A cover is defined as a product missing all size prices.
     final productsResponse = await _client
@@ -33,11 +39,38 @@ class CategoriesRemoteDSImpl implements CategoriesRemoteDS {
     return rawCategories.map((rawCat) {
       final jsonCat = rawCat as Map<String, dynamic>;
       final catId = jsonCat['id'].toString();
-      final catNameEn =
-          (jsonCat['name_en']?.toString() ?? jsonCat['name']?.toString() ?? '')
-              .toLowerCase()
-              .trim();
-      final catNameAr = (jsonCat['name_ar']?.toString() ?? '').trim();
+      final rawCatNameEn = (jsonCat['name_en']?.toString() ?? jsonCat['name']?.toString() ?? '');
+      final rawCatNameAr = jsonCat['name_ar']?.toString() ?? '';
+      
+      String catNameAr = rawCatNameAr.trim();
+      final catNameEnLower = rawCatNameEn.toLowerCase().trim();
+
+      // --- Fallback Translation Logic ---
+      final Map<String, String> translationMap = {
+        'iced': 'المشروبات المثلجة',
+        'hot': 'المشروبات الساخنة',
+        'fresh juice': 'العصائر الطبيعية',
+        'smoothie': 'سموثي',
+        'dessert': 'الحلويات',
+        'sweets': 'الحلويات',
+        'bakery': 'المخبوزات',
+        'frappe': 'فرابيه',
+        'milkshake': 'ميلك شيك',
+        'mix soda': 'ميكس صودا',
+        'sundae': 'صانداي',
+      };
+
+      // If translated name is empty, null, or same as English, try fallback
+      if (catNameAr.isEmpty || catNameAr.toLowerCase() == catNameEnLower) {
+        for (var entry in translationMap.entries) {
+          if (catNameEnLower.contains(entry.key)) {
+            catNameAr = entry.value;
+            jsonCat['name_ar'] = catNameAr; // Update json for the model
+            break;
+          }
+        }
+      }
+      // ----------------------------------
 
       // Find a matching cover image in the products list
       String? matchedImageUrl;
@@ -49,10 +82,10 @@ class CategoriesRemoteDSImpl implements CategoriesRemoteDS {
         final coverNameAr = (cover['name_ar']?.toString() ?? '').trim();
 
         // Match Rule: Same category_id AND (Names match exactly OR Cover Name contains Category Name OR Category Name contains Cover Name)
-        bool enMatch = catNameEn.isNotEmpty &&
+        bool enMatch = catNameEnLower.isNotEmpty &&
             coverNameEn.isNotEmpty &&
-            (coverNameEn.contains(catNameEn) ||
-                catNameEn.contains(coverNameEn));
+            (coverNameEn.contains(catNameEnLower) ||
+                catNameEnLower.contains(coverNameEn));
         bool arMatch = catNameAr.isNotEmpty &&
             coverNameAr.isNotEmpty &&
             (coverNameAr.contains(catNameAr) ||

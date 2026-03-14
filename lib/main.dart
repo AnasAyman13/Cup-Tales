@@ -4,11 +4,21 @@ import 'core/di/injection_container.dart' as di;
 import 'core/local_storage/hive_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/config/supabase_config.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'app.dart';
 
 void main() async {
   final t0 = DateTime.now();
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase manual way (using google-services.json / GoogleService-Info.plist)
+  try {
+    await Firebase.initializeApp();
+    debugPrint('[Startup] Firebase Initialized Successfully');
+  } catch (e) {
+    debugPrint('[Startup] Firebase Initialization Error: $e');
+  }
+
   debugPrint('\n======================================================');
   debugPrint('[Startup] FLUTTER ENGINE START / RESTART');
   debugPrint(
@@ -22,23 +32,18 @@ void main() async {
     onDetach: () => debugPrint('[Startup Lifecycle] ON_DETACH'),
   );
 
-  // ── STEP 1: Register all DI factories synchronously (<1 ms, zero IO) ───────
-  // This is purely in-memory registration — no disk, no network.
+  // ── STEP 1: Register all DI factories synchronously ───────
   di.registerSync();
   debugPrint(
       '[Startup] registerSync done  +${DateTime.now().difference(t0).inMilliseconds}ms');
 
-  // ── STEP 2: Show the app immediately ────────────────────────────────────────
-  // Flutter renders the first frame (the splash widget) RIGHT NOW.
-  // The native blue launch window is replaced the moment this frame arrives.
+  // ── STEP 2: Show the app immediately ──────────────────────
   debugPrint('[Startup] runApp called -> CupTalesApp');
   runApp(const CupTalesApp());
   debugPrint(
       '[Startup] runApp complete  +${DateTime.now().difference(t0).inMilliseconds}ms');
 
-  // ── STEP 3: Heavy async init after the splash has started ──────────────────
-  // We wait 300ms so the splash animation begins completely cleanly
-  // without the main thread being congested by Supabase/SQLite init.
+  // ── STEP 3: Heavy async init after the splash has started ──
   WidgetsBinding.instance.addPostFrameCallback((_) {
     Future.delayed(const Duration(milliseconds: 300), () async {
       debugPrint('[Startup] starting heavy async init');
