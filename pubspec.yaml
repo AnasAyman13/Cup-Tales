@@ -48,6 +48,8 @@ dependencies:
   google_sign_in: ^6.2.2
   crypto: ^3.0.6
   firebase_core: ^4.5.0
+  http: ^1.6.0
+  webview_flutter: ^4.13.1
 
 dev_dependencies:
   flutter_test:
@@ -64,9 +66,10 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/logo/logo_foreground.png"
-  adaptive_icon_background: "#2D3194"
-  adaptive_icon_foreground: "assets/images/logo/logo_foreground.png"
+  image_path: "assets/images/logo/logo.png"
+  adaptive_icon_background: "#00000000"
+  adaptive_icon_foreground: "assets/images/logo/logo.png"
+  remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

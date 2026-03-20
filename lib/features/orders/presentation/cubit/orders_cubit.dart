@@ -6,18 +6,20 @@ import '../../../../core/local_storage/hive_service.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import 'orders_state.dart';
 import '../../domain/entities/order_entity.dart';
+import '../../domain/entities/order_item_entity.dart';
 
 class OrdersCubit extends Cubit<OrdersState> {
-  final GetUserOrdersUseCase _getUserOrders;
+  late final GetUserOrdersUseCase _getUserOrders;
   final HiveService _hive = di.sl<HiveService>();
 
-  OrdersCubit()
-      : _getUserOrders = GetUserOrdersUseCase(
-          OrdersRepositoryImpl(Supabase.instance.client),
-        ),
-        super(const OrdersInitial()) {
-    // Wait for Hive to be ready before loading cache
-    di.appReady.then((_) => _loadFromCache());
+  OrdersCubit() : super(const OrdersInitial()) {
+    // Wait for Hive AND Supabase to be ready before initializing usecase or loading
+    di.appReady.then((_) {
+      _getUserOrders = GetUserOrdersUseCase(
+        OrdersRepositoryImpl(Supabase.instance.client),
+      );
+      _loadFromCache();
+    });
   }
 
   void _loadFromCache() {
@@ -27,15 +29,25 @@ class OrdersCubit extends Cubit<OrdersState> {
     if (cached != null && cached is List) {
       final orders = cached.map((e) {
         final map = Map<String, dynamic>.from(e);
+        final itemsList = (map['items'] as List? ?? []).map((i) {
+          final itemMap = Map<String, dynamic>.from(i);
+          return OrderItemEntity(
+            productId: itemMap['product_id'] ?? '',
+            productName: itemMap['product_name'] ?? '',
+            productNameAr: itemMap['product_name_ar'],
+            productImage: itemMap['product_image'] ?? '',
+            quantity: itemMap['quantity'] ?? 1,
+            price: ((itemMap['price'] ?? itemMap['total_amount'] ?? 0.0) as num).toDouble(),
+          );
+        }).toList();
+
         return OrderEntity(
           id: map['id'],
           userId: map['user_id'],
-          productId: map['product_id'] ?? '',
-          productName: map['product_name'],
-          productImage: map['product_image'],
-          quantity: map['quantity'] ?? 1,
-          price: (map['price'] as num).toDouble(),
+          items: itemsList,
+          totalAmount: (map['total_amount'] as num).toDouble(),
           status: map['status'],
+          branchName: map['branch_name']?.toString(),
           createdAt: DateTime.parse(map['created_at']),
         );
       }).toList();
@@ -48,12 +60,19 @@ class OrdersCubit extends Cubit<OrdersState> {
         .map((e) => {
               'id': e.id,
               'user_id': e.userId,
-              'product_id': e.productId,
-              'product_name': e.productName,
-              'product_image': e.productImage,
-              'quantity': e.quantity,
-              'price': e.price,
+              'items': e.items
+                  .map((i) => {
+                        'product_id': i.productId,
+                        'product_name': i.productName,
+                        'product_name_ar': i.productNameAr,
+                        'product_image': i.productImage,
+                        'quantity': i.quantity,
+                        'total_amount': i.price,
+                      })
+                  .toList(),
+              'total_amount': e.totalAmount,
               'status': e.status,
+              'branch_name': e.branchName,
               'created_at': e.createdAt.toIso8601String(),
             })
         .toList();
@@ -61,6 +80,7 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   Future<void> loadOrders() async {
+    await di.appReady;
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
       emit(const OrdersError('No user logged in.'));
@@ -70,6 +90,7 @@ class OrdersCubit extends Cubit<OrdersState> {
     emit(const OrdersLoading());
     try {
       final orders = await _getUserOrders(user.id);
+      print('DEBUG: Fetched ${orders.length} orders from Supabase');
       _saveToCache(orders);
       emit(OrdersLoaded(orders));
     } catch (e) {

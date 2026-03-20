@@ -80,13 +80,6 @@ class OrderSummaryCard extends StatelessWidget {
                   '${subtotal.toStringAsFixed(2)} ${context.loc.egp}',
                   isBold: false,
                 ),
-                const SizedBox(height: 12),
-                _buildSummaryRow(
-                  context.tr('Delivery Fee', 'رسوم التوصيل'),
-                  context.tr('Calculated later', 'يُحسب لاحقاً'),
-                  isBold: false,
-                  color: Colors.grey.shade400,
-                ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 16.0),
                   child: Divider(height: 1),

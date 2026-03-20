@@ -11,6 +11,7 @@ import 'core/localization/app_localizations.dart';
 import 'features/cart/presentation/cubit/cart_cubit.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/auth/presentation/pages/auth_gate.dart';
+import 'features/orders/presentation/cubit/orders_cubit.dart';
 import 'core/di/injection_container.dart' as di;
 
 // Cached theme — never rebuilt, computed once
@@ -28,6 +29,7 @@ class _CupTalesAppState extends State<CupTalesApp> {
   late final LanguageCubit _languageCubit = di.sl<LanguageCubit>();
   late final AuthCubit _authCubit = di.sl<AuthCubit>();
   late final CartCubit _cartCubit = di.sl<CartCubit>();
+  late final OrdersCubit _ordersCubit = di.sl<OrdersCubit>();
 
   Locale _locale = const Locale('en');
 
@@ -60,6 +62,7 @@ class _CupTalesAppState extends State<CupTalesApp> {
     _languageCubit.close();
     _authCubit.close();
     _cartCubit.close();
+    _ordersCubit.close();
     super.dispose();
   }
 
@@ -70,6 +73,7 @@ class _CupTalesAppState extends State<CupTalesApp> {
         BlocProvider<LanguageCubit>.value(value: _languageCubit),
         BlocProvider<AuthCubit>.value(value: _authCubit),
         BlocProvider<CartCubit>.value(value: _cartCubit),
+        BlocProvider<OrdersCubit>.value(value: _ordersCubit),
       ],
       child: MaterialApp(
         title: AppConstants.appName,

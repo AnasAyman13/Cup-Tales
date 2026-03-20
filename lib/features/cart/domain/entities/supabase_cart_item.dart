@@ -8,6 +8,7 @@ class SupabaseCartItem extends Equatable {
   final double price;
   final String image;
   final int quantity;
+  final String? productNameAr;
 
   const SupabaseCartItem({
     required this.id,
@@ -17,6 +18,7 @@ class SupabaseCartItem extends Equatable {
     required this.price,
     required this.image,
     required this.quantity,
+    this.productNameAr,
   });
 
   factory SupabaseCartItem.fromJson(Map<String, dynamic> json) {
@@ -39,10 +41,23 @@ class SupabaseCartItem extends Equatable {
           json['image'] as String? ??
           '',
       quantity: (json['quantity'] as num).toInt(),
+      productNameAr: products?['name_ar'] as String? ?? json['product_name_ar'] as String?,
     );
   }
 
   double get totalPrice => price * quantity;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'product_id': productId,
+      'product_name': productName,
+      'product_name_ar': productNameAr,
+      'price': price,
+      'image': image,
+      'quantity': quantity,
+    };
+  }
 
   @override
   List<Object?> get props =>

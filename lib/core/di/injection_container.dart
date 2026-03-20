@@ -7,6 +7,8 @@ import '../local_storage/prefs_service.dart';
 import '../services/notification_service.dart';
 import '../localization/language_cubit.dart';
 import '../services/auth_service.dart';
+import '../services/paymob_service.dart';
+import '../services/order_service.dart';
 import '../../features/auth/data/profile_service.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/cart/presentation/cubit/cart_cubit.dart';
@@ -20,6 +22,7 @@ import '../../features/products/data/repositories/products_repo_impl.dart';
 import '../../features/products/domain/repositories/products_repo.dart';
 import '../../features/products/domain/usecases/get_products_by_category.dart';
 import '../../features/products/presentation/cubit/products_cubit.dart';
+import '../../features/orders/presentation/cubit/orders_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -35,6 +38,8 @@ void registerSync() {
   sl.registerLazySingleton(() => HiveService());
   sl.registerLazySingleton(() => NotificationService());
   sl.registerLazySingleton(() => AuthService());
+  sl.registerLazySingleton(() => PaymobService());
+  sl.registerLazySingleton(() => OrderService());
   sl.registerLazySingleton(() => ProfileService());
 
   // Features
@@ -55,6 +60,9 @@ void registerSync() {
 
   // Cart
   sl.registerFactory(() => CartCubit());
+
+  // Orders
+  sl.registerFactory(() => OrdersCubit());
 }
 
 /// Step 2 — load SharedPreferences and signal readiness.

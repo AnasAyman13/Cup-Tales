@@ -12,7 +12,7 @@ class OrdersRepositoryImpl implements OrdersRepository {
   Future<List<OrderEntity>> getUserOrders(String userId) async {
     final data = await _client
         .from('orders')
-        .select('*, products(name, name_ar, image_url)')
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 

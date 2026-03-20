@@ -16,7 +16,6 @@ class CartPage extends StatefulWidget {
 class _CartPageState extends State<CartPage> {
   static const _primaryColor = Color(0xFF2D3194);
   static const _bgColor = Color(0xFFF6F6F8);
-  static const double _deliveryFee = 2.0;
 
   @override
   void initState() {
@@ -45,8 +44,8 @@ class _CartPageState extends State<CartPage> {
           if (state is CartCheckedOut) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(context.tr('🎉 Order placed successfully!',
-                    '🎉 تم تأكيد الطلب بنجاح!')),
+                content: Text(context.tr('Order placed successfully!',
+                    'تم تأكيد الطلب بنجاح!')),
                 backgroundColor: Colors.green,
                 behavior: SnackBarBehavior.floating,
               ),
@@ -120,12 +119,10 @@ class _CartPageState extends State<CartPage> {
                   ),
                 ),
 
-                // ── Order summary + checkout ──────────────────────────────
                 _OrderSummary(
                   subtotal: subtotal,
                   discount: state.discount,
-                  deliveryFee: _deliveryFee,
-                  total: (subtotal - state.discount) + _deliveryFee,
+                  total: (subtotal - state.discount),
                 ),
               ],
             );
@@ -290,14 +287,12 @@ class _QtyButton extends StatelessWidget {
 class _OrderSummary extends StatelessWidget {
   final double subtotal;
   final double discount;
-  final double deliveryFee;
   final double total;
   static const _primaryColor = Color(0xFF2D3194);
 
   const _OrderSummary({
     required this.subtotal,
     required this.discount,
-    required this.deliveryFee,
     required this.total,
   });
 
@@ -325,10 +320,6 @@ class _OrderSummary extends StatelessWidget {
               valueColor: Colors.green,
             ),
           ],
-          const SizedBox(height: 6),
-          _SummaryRow(
-              label: context.tr('Delivery Fee', 'رسوم التوصيل'),
-              value: '\$${deliveryFee.toStringAsFixed(2)}'),
           const Divider(height: 24),
           _SummaryRow(
             label: context.tr('Total', 'الإجمالي'),

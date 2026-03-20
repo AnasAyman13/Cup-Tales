@@ -21,11 +21,13 @@ class OrdersLoaded extends OrdersState {
 
   const OrdersLoaded(this.orders);
 
-  List<OrderEntity> get activeOrders =>
-      orders.where((o) => o.status == 'preparing').toList();
+  List<OrderEntity> get activeOrders => orders
+      .where((o) => o.status == 'preparing' || o.status == 'Paid')
+      .toList();
 
-  List<OrderEntity> get historyOrders =>
-      orders.where((o) => o.status == 'delivered').toList();
+  List<OrderEntity> get historyOrders => orders
+      .where((o) => o.status == 'delivered' || o.status == 'completed')
+      .toList();
 
   @override
   List<Object?> get props => [orders];

@@ -11,10 +11,7 @@ class OrdersPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => OrdersCubit()..loadOrders(),
-      child: const _OrdersView(),
-    );
+    return const _OrdersView();
   }
 }
 
@@ -27,6 +24,17 @@ class _OrdersView extends StatefulWidget {
 
 class _OrdersViewState extends State<_OrdersView> {
   bool _showActive = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresh orders as soon as we enter the page
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<OrdersCubit>().loadOrders();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,8 +208,11 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageCubit>();
-    final isActive = order.status == 'preparing';
+    if (order.items.isEmpty) return const SizedBox.shrink();
+
+    final isActive = order.status == 'preparing' || order.status == 'Paid';
     final shortId = order.id.length > 6 ? order.id.substring(0, 6) : order.id;
+    final firstItem = order.items.first;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -224,11 +235,12 @@ class _OrderCard extends StatelessWidget {
               // Icon
               SizedBox(
                 height: 70,
-                child: order.productImage.isNotEmpty
+                width: 70,
+                child: firstItem.productImage.isNotEmpty
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.network(
-                          order.productImage,
+                          firstItem.productImage,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => const Icon(
                               Icons.local_cafe,
@@ -252,17 +264,21 @@ class _OrderCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: isActive
-                                ? const Color(0xFF2D3194).withOpacity(0.12)
-                                : Colors.green.withOpacity(0.12),
+                            color: order.status == 'preparing'
+                                ? Colors.amber.withOpacity(0.12)
+                                : (isActive
+                                    ? const Color(0xFF2D3194).withOpacity(0.12)
+                                    : Colors.green.withOpacity(0.12)),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             _translateStatus(context, order.status),
                             style: TextStyle(
-                              color: isActive
-                                  ? const Color(0xFF2D3194)
-                                  : Colors.green.shade700,
+                              color: order.status == 'preparing'
+                                  ? Colors.amber.shade900
+                                  : (isActive
+                                      ? const Color(0xFF2D3194)
+                                      : Colors.green.shade700),
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
                             ),
@@ -276,20 +292,52 @@ class _OrderCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
+                    // Item List Label
                     Text(
-                      context.tr(order.productName,
-                          order.productNameAr ?? order.productName),
+                      context.tr('Ordered Items', 'المنتجات المطلوبة'),
                       style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
+                    // Item List
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: order.items.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '${item.quantity}x ${_translateProductName(context, item.productName, item.productNameAr)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 8),
+                    // Branch Info
+                    Row(
+                      children: [
+                        const Icon(Icons.storefront, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${context.tr('Branch:', 'الفرع:')} ${_getBranchName(context, order.branchName)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      isActive
-                          ? context.tr('Estimated: 8-12 mins',
-                              'الوقت المتوقع: ٨-١٢ دقيقة')
-                          : _formattedDate(order.createdAt),
+                      '${context.tr('Date:', 'تاريخ:')} ${_formattedDate(order.createdAt)}',
                       style: const TextStyle(color: Colors.grey, fontSize: 13),
                     ),
                   ],
@@ -306,10 +354,10 @@ class _OrderCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(context.tr('Total Price', 'السعر الإجمالي'),
-                      style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(context.tr('Total Price:', 'السعر الإجمالي:'),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12)),
                   Text(
-                    '${order.price.toStringAsFixed(2)} ${context.loc.egp}',
+                    '${order.totalAmount.toStringAsFixed(2)} ${context.loc.egp}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 18),
                   ),
@@ -326,11 +374,38 @@ class _OrderCard extends StatelessWidget {
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 
+  String _translateProductName(BuildContext context, String name, String? nameAr) {
+    if (nameAr != null && nameAr.isNotEmpty) return nameAr;
+    
+    final upper = name.toUpperCase().trim();
+    if (upper.contains('MINT LEMON')) return 'ليمون نعناع';
+    if (upper.contains('MANGO')) return 'مانجو فريش';
+    if (upper.contains('ORANGE')) return 'برتقال فريش';
+    if (upper.contains('STRAWBERRY')) return 'فراولة فريش';
+    if (upper.contains('COFFEE')) return 'قهوة';
+    if (upper.contains('TEA')) return 'شاي';
+    
+    return name;
+  }
+
   String _translateStatus(BuildContext context, String status) {
-    if (status == 'preparing') return context.tr('PREPARING', 'قيد التحضير');
+    if (status == 'preparing') return context.tr('PREPARING', 'جاري التحضير');
+    if (status == 'Paid') return context.tr('PAID', 'تم الدفع');
     if (status == 'completed') return context.tr('COMPLETED', 'مكتمل');
     if (status == 'cancelled') return context.tr('CANCELLED', 'ملغي');
     return status.toUpperCase();
+  }
+
+  String _getBranchName(BuildContext context, String? branchName) {
+    if (branchName == null || branchName.isEmpty || branchName == 'N/A') return 'فرع كب تيلز';
+    
+    final name = branchName.toLowerCase();
+    if (name.contains('rehab')) return 'فرع الرحاب';
+    if (name.contains('mahalla branch 1') || name.contains('mahalla 1')) return 'فرع المحلة 1';
+    if (name.contains('mahalla branch 2') || name.contains('mahalla 2')) return 'فرع المحلة 2';
+    if (name.contains('mahalla')) return 'فرع المحلة';
+    
+    return 'فرع كب تيلز';
   }
 }
 

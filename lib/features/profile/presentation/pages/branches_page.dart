@@ -26,32 +26,29 @@ class BranchesPage extends StatelessWidget {
       ),
       body: ListView(
         padding: const EdgeInsets.all(24.0),
-        children: [
+        children: const [
           BranchCard(
             nameEn: 'Rehab Branch',
             nameAr: 'فرع الرحاب',
             areaEn: 'New Cairo',
             areaAr: 'القاهرة الجديدة',
-            url:
-                'https://www.google.com/maps/search/?api=1&query=30.0756875,31.5028125',
+            mapUrl: 'https://maps.app.goo.gl/NAZnJfaY99HrSBYJ9',
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           BranchCard(
             nameEn: 'Mahalla Branch 1',
             nameAr: 'فرع المحلة 1',
             areaEn: 'El Mahalla El Kubra',
             areaAr: 'المحلة الكبرى',
-            url:
-                'https://www.google.com/maps/search/?api=1&query=30.9277151,31.130399',
+            mapUrl: 'https://maps.app.goo.gl/rRnhstcoyHXMKyaG8',
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           BranchCard(
             nameEn: 'Mahalla Branch 2',
             nameAr: 'فرع المحلة 2',
             areaEn: 'El Mahalla El Kubra',
             areaAr: 'المحلة الكبرى',
-            url:
-                'https://www.google.com/maps/search/?api=1&query=30.9779318,31.1816941',
+            mapUrl: 'https://maps.app.goo.gl/kTpifykykRoc9DRFA',
           ),
         ],
       ),
@@ -64,7 +61,7 @@ class BranchCard extends StatelessWidget {
   final String nameAr;
   final String areaEn;
   final String areaAr;
-  final String url;
+  final String mapUrl;
 
   const BranchCard({
     super.key,
@@ -72,11 +69,12 @@ class BranchCard extends StatelessWidget {
     required this.nameAr,
     required this.areaEn,
     required this.areaAr,
-    required this.url,
+    required this.mapUrl,
   });
 
   Future<void> _openMap(BuildContext context) async {
-    final uri = Uri.parse(url);
+    // 💡 Using direct Google Maps Share Link for 100% precision
+    final uri = Uri.parse(mapUrl);
     try {
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
         if (context.mounted) {

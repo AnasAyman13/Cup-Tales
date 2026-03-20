@@ -226,27 +226,38 @@ class CartCubit extends Cubit<CartState> {
 
   // ── Checkout ────────────────────────────────────────────────────────────
 
-  Future<void> checkout() async {
+  Future<void> checkout({String? branchName}) async {
     final user = _client.auth.currentUser;
     if (user == null || state is! CartLoaded) return;
 
-    final items = (state as CartLoaded).items;
+    final cartState = state as CartLoaded;
+    final items = cartState.items;
     if (items.isEmpty) return;
 
     emit(CartCheckingOut());
     try {
-      for (final item in items) {
-        // Professional Checkout: Price persists at time of purchase
-        await _client.from('orders').insert({
-          'user_id': user.id,
-          'product_id': item.productId,
-          'price': item.price,
-          'quantity': item.quantity,
-          'status': 'preparing',
-        });
-      }
+      final double totalAmount = cartState.subtotal - cartState.discount;
+      
+      final orderData = {
+        'user_id': user.id,
+        'status': 'preparing',
+        'total_amount': totalAmount,
+        'branch_name': branchName,
+        'items': items.map((e) => {
+          'product_id': e.productId,
+          'product_name': e.productName,
+          'product_name_ar': e.productNameAr,
+          'product_image': e.image,
+          'total_amount': e.price,
+          'quantity': e.quantity,
+        }).toList(),
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      await _client.from('orders').insert(orderData);
 
       await _client.from('cart').delete().eq('user_id', user.id);
+      _hive.cartBox.delete('items'); // Clear local cache too
       emit(CartCheckedOut());
     } catch (e) {
       emit(CartError('Checkout failed: ${e.toString()}'));
@@ -255,7 +266,16 @@ class CartCubit extends Cubit<CartState> {
 
   // ── Legacy stub (kept for compatibility) ───────────────────────────────
 
-  void clearCart() {
-    emit(const CartLoaded(items: []));
+  Future<void> clearCart() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await _client.from('cart').delete().eq('user_id', user.id);
+      _hive.cartBox.delete('items');
+      emit(const CartLoaded(items: []));
+    } catch (e) {
+      emit(CartError('Failed to clear cart: ${e.toString()}'));
+    }
   }
 }

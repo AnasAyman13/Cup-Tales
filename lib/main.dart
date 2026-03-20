@@ -6,14 +6,17 @@ import 'core/services/notification_service.dart';
 import 'core/config/supabase_config.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'app.dart';
+import 'firebase_options.dart';
 
 void main() async {
   final t0 = DateTime.now();
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase manual way (using google-services.json / GoogleService-Info.plist)
+  // Initialize Firebase with generated options
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     debugPrint('[Startup] Firebase Initialized Successfully');
   } catch (e) {
     debugPrint('[Startup] Firebase Initialization Error: $e');
