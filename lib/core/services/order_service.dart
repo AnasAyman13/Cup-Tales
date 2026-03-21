@@ -11,7 +11,7 @@ class OrderService {
     required List<Map<String, dynamic>> items,
     required double total,
     required String status,
-    String? branchName,
+    String? branchId,
   }) async {
     try {
       final response = await _client.from('orders').insert({
@@ -19,7 +19,7 @@ class OrderService {
         'status': status,
         'total_amount': total,
         'items': items,
-        'branch_name': branchName,
+        'branch_id': branchId,
         'created_at': DateTime.now().toIso8601String(),
       }).select().single();
 

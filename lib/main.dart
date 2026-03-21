@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/di/injection_container.dart' as di;
 import 'core/local_storage/hive_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/branch_service.dart';
 import 'core/config/supabase_config.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'app.dart';
@@ -56,6 +57,10 @@ void main() async {
         Supabase.initialize(
           url: SupabaseConfig.url,
           anonKey: SupabaseConfig.anonKey,
+          realtimeClientOptions: const RealtimeClientOptions(
+            timeout: Duration(seconds: 60),
+            logLevel: RealtimeLogLevel.info,
+          ),
         ),
         di.initAsync(), // registers PrefsService, completes di.appReady
         di
@@ -67,6 +72,7 @@ void main() async {
 
       // Non-critical — fire and forget
       di.sl<NotificationService>().init().ignore();
+      di.sl<BranchService>().fetchBranches().ignore();
     });
   });
 }

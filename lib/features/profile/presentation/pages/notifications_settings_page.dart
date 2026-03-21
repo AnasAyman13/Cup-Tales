@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/routing/app_router.dart';
 
 class NotificationsSettingsPage extends StatefulWidget {
   const NotificationsSettingsPage({super.key});
@@ -24,7 +25,8 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () =>
+              Navigator.pushReplacementNamed(context, AppRouter.home),
         ),
         title: Text(
           context.loc.notifications,
@@ -42,9 +44,7 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                context
-                    .tr('Alert Preferences', 'تفضيلات التنبيهات')
-                    .toUpperCase(),
+                context.loc.alertPreferences.toUpperCase(),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -69,17 +69,17 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
                 child: Column(
                   children: [
                     SwitchListTile(
-                      activeThumbColor: AppColors.primary,
+                      activeColor: AppColors.primary,
+                      activeTrackColor: AppColors.primary.withOpacity(0.5),
                       title: Text(
-                        context.tr('Push Notifications', 'إشعارات الهاتف'),
+                        context.loc.pushNotifications,
                         style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary),
                       ),
                       subtitle: Text(
-                        context.tr('Stay updated on your orders',
-                            'ابق على اطلاع بحالة طلباتك'),
+                        context.loc.stayUpdatedOrders,
                         style: TextStyle(
                             fontSize: 12, color: Colors.grey.shade500),
                       ),
@@ -88,18 +88,17 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
                     ),
                     const Divider(height: 1),
                     SwitchListTile(
-                      activeThumbColor: AppColors.primary,
+                      activeColor: AppColors.primary,
+                      activeTrackColor: AppColors.primary.withOpacity(0.5),
                       title: Text(
-                        context.tr('Email Offers', 'عروض البريد الإلكتروني'),
+                        context.loc.emailOffers,
                         style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary),
                       ),
                       subtitle: Text(
-                        context.tr(
-                            'Receive special discounts directly to your inbox',
-                            'احصل على خصومات حصرية عبر بريدك'),
+                        context.loc.getDiscountsInbox,
                         style: TextStyle(
                             fontSize: 12, color: Colors.grey.shade500),
                       ),

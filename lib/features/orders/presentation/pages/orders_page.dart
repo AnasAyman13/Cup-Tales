@@ -5,6 +5,7 @@ import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/language_cubit.dart';
 import '../cubit/orders_cubit.dart';
 import '../cubit/orders_state.dart';
+import '../../../../core/models/branch.dart';
 
 class OrdersPage extends StatelessWidget {
   const OrdersPage({super.key});
@@ -81,7 +82,7 @@ class _OrdersViewState extends State<_OrdersView> {
       child: Row(
         children: [
           _Tab(
-            label: context.tr('Active', 'الحالية'),
+            label: context.tr('Status', 'الحالة'),
             selected: _showActive,
             onTap: () => setState(() => _showActive = true),
           ),
@@ -210,7 +211,6 @@ class _OrderCard extends StatelessWidget {
     context.watch<LanguageCubit>();
     if (order.items.isEmpty) return const SizedBox.shrink();
 
-    final isActive = order.status == 'preparing' || order.status == 'Paid';
     final shortId = order.id.length > 6 ? order.id.substring(0, 6) : order.id;
     final firstItem = order.items.first;
 
@@ -264,21 +264,13 @@ class _OrderCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: order.status == 'preparing'
-                                ? Colors.amber.withOpacity(0.12)
-                                : (isActive
-                                    ? const Color(0xFF2D3194).withOpacity(0.12)
-                                    : Colors.green.withOpacity(0.12)),
+                            color: _getStatusBgColor(order.status),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             _translateStatus(context, order.status),
                             style: TextStyle(
-                              color: order.status == 'preparing'
-                                  ? Colors.amber.shade900
-                                  : (isActive
-                                      ? const Color(0xFF2D3194)
-                                      : Colors.green.shade700),
+                              color: _getStatusTextColor(order.status),
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
                             ),
@@ -326,7 +318,7 @@ class _OrderCard extends StatelessWidget {
                         const Icon(Icons.storefront, size: 14, color: Colors.grey),
                         const SizedBox(width: 4),
                         Text(
-                          '${context.tr('Branch:', 'الفرع:')} ${_getBranchName(context, order.branchName)}',
+                          '${context.tr('Branch:', 'الفرع:')} ${_getBranchName(context, order.branchId)}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -389,23 +381,55 @@ class _OrderCard extends StatelessWidget {
   }
 
   String _translateStatus(BuildContext context, String status) {
+    if (status == 'pending') return context.tr('PENDING', 'قيد الانتظار');
     if (status == 'preparing') return context.tr('PREPARING', 'جاري التحضير');
-    if (status == 'Paid') return context.tr('PAID', 'تم الدفع');
-    if (status == 'completed') return context.tr('COMPLETED', 'مكتمل');
+    if (status == 'ready') return context.tr('READY', 'جاهز للاستلام');
+    if (status == 'delivered') return context.tr('DELIVERED', 'تم التسليم');
     if (status == 'cancelled') return context.tr('CANCELLED', 'ملغي');
     return status.toUpperCase();
   }
 
-  String _getBranchName(BuildContext context, String? branchName) {
-    if (branchName == null || branchName.isEmpty || branchName == 'N/A') return 'فرع كب تيلز';
+  String _getBranchName(BuildContext context, String? branchId) {
+    if (branchId == null || branchId.isEmpty) return 'فرع كب تيلز';
     
-    final name = branchName.toLowerCase();
-    if (name.contains('rehab')) return 'فرع الرحاب';
-    if (name.contains('mahalla branch 1') || name.contains('mahalla 1')) return 'فرع المحلة 1';
-    if (name.contains('mahalla branch 2') || name.contains('mahalla 2')) return 'فرع المحلة 2';
-    if (name.contains('mahalla')) return 'فرع المحلة';
+    final branch = appBranches.firstWhere(
+      (b) => b.id == branchId,
+      orElse: () => appBranches.first,
+    );
     
-    return 'فرع كب تيلز';
+    return context.isArabic ? branch.nameAr : branch.nameEn;
+  }
+
+  Color _getStatusBgColor(String status) {
+    switch (status) {
+      case 'pending':
+      case 'preparing':
+        return Colors.amber.withOpacity(0.12);
+      case 'ready':
+        return const Color(0xFF2D3194).withOpacity(0.12);
+      case 'delivered':
+        return Colors.green.withOpacity(0.12);
+      case 'cancelled':
+        return Colors.red.withOpacity(0.12);
+      default:
+        return Colors.grey.withOpacity(0.12);
+    }
+  }
+
+  Color _getStatusTextColor(String status) {
+    switch (status) {
+      case 'pending':
+      case 'preparing':
+        return Colors.amber.shade900;
+      case 'ready':
+        return const Color(0xFF2D3194);
+      case 'delivered':
+        return Colors.green.shade700;
+      case 'cancelled':
+        return Colors.red.shade700;
+      default:
+        return Colors.grey.shade700;
+    }
   }
 }
 

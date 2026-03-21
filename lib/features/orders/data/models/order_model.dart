@@ -8,7 +8,7 @@ class OrderModel extends OrderEntity {
     required super.items,
     required super.totalAmount,
     required super.status,
-    super.branchName,
+    super.branchId,
     required super.createdAt,
   });
 
@@ -32,7 +32,7 @@ class OrderModel extends OrderEntity {
       items: items,
       totalAmount: ((json['total_amount'] ?? json['total'] ?? 0.0) as num).toDouble(),
       status: json['status'] as String,
-      branchName: json['branch_name']?.toString() ?? '',
+      branchId: json['branch_id']?.toString() ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -61,7 +61,7 @@ class OrderModel extends OrderEntity {
       }).toList(),
       'total_amount': totalAmount,
       'status': status,
-      'branch_name': branchName,
+      'branch_id': branchId,
       'created_at': createdAt.toIso8601String(),
     };
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/models/branch.dart';
 
 class BranchesPage extends StatelessWidget {
   const BranchesPage({super.key});
@@ -24,33 +25,20 @@ class BranchesPage extends StatelessWidget {
         iconTheme: const IconThemeData(color: AppColors.primary),
         centerTitle: true,
       ),
-      body: ListView(
+      body: ListView.separated(
         padding: const EdgeInsets.all(24.0),
-        children: const [
-          BranchCard(
-            nameEn: 'Rehab Branch',
-            nameAr: 'فرع الرحاب',
-            areaEn: 'New Cairo',
-            areaAr: 'القاهرة الجديدة',
-            mapUrl: 'https://maps.app.goo.gl/NAZnJfaY99HrSBYJ9',
-          ),
-          SizedBox(height: 16),
-          BranchCard(
-            nameEn: 'Mahalla Branch 1',
-            nameAr: 'فرع المحلة 1',
-            areaEn: 'El Mahalla El Kubra',
-            areaAr: 'المحلة الكبرى',
-            mapUrl: 'https://maps.app.goo.gl/rRnhstcoyHXMKyaG8',
-          ),
-          SizedBox(height: 16),
-          BranchCard(
-            nameEn: 'Mahalla Branch 2',
-            nameAr: 'فرع المحلة 2',
-            areaEn: 'El Mahalla El Kubra',
-            areaAr: 'المحلة الكبرى',
-            mapUrl: 'https://maps.app.goo.gl/kTpifykykRoc9DRFA',
-          ),
-        ],
+        itemCount: appBranches.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 16),
+        itemBuilder: (context, index) {
+          final branch = appBranches[index];
+          return BranchCard(
+            nameEn: branch.nameEn,
+            nameAr: branch.nameAr,
+            areaEn: branch.areaEn,
+            areaAr: branch.areaAr,
+            location: branch.location,
+          );
+        },
       ),
     );
   }
@@ -61,7 +49,7 @@ class BranchCard extends StatelessWidget {
   final String nameAr;
   final String areaEn;
   final String areaAr;
-  final String mapUrl;
+  final String location;
 
   const BranchCard({
     super.key,
@@ -69,12 +57,11 @@ class BranchCard extends StatelessWidget {
     required this.nameAr,
     required this.areaEn,
     required this.areaAr,
-    required this.mapUrl,
+    required this.location,
   });
 
   Future<void> _openMap(BuildContext context) async {
-    // 💡 Using direct Google Maps Share Link for 100% precision
-    final uri = Uri.parse(mapUrl);
+    final uri = Uri.parse(location);
     try {
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
         if (context.mounted) {

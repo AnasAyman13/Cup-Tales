@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../products/domain/entities/product_entity.dart';
 import '../../domain/entities/category_entity.dart';
+import '../../domain/entities/offer_entity.dart';
 
 abstract class HomeState extends Equatable {
   const HomeState();
@@ -14,7 +15,7 @@ class HomeInitial extends HomeState {}
 class HomeLoading extends HomeState {}
 
 class HomeLoaded extends HomeState {
-  final List<String> banners;
+  final List<OfferEntity> banners;
   final List<ProductEntity> featuredProducts;
   final List<CategoryEntity> categories;
   final String selectedCategoryId;
@@ -27,7 +28,7 @@ class HomeLoaded extends HomeState {
   });
 
   HomeLoaded copyWith({
-    List<String>? banners,
+    List<OfferEntity>? banners,
     List<ProductEntity>? featuredProducts,
     List<CategoryEntity>? categories,
     String? selectedCategoryId,

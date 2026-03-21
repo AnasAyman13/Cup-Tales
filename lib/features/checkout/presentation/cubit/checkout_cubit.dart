@@ -6,6 +6,7 @@ import '../../../../core/services/paymob_service.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../features/auth/data/profile_service.dart';
 import '../../../../core/services/order_service.dart';
+import '../../../../core/services/branch_service.dart';
 import '../../../../core/models/branch.dart';
 
 class CheckoutCubit extends Cubit<CheckoutState> {
@@ -14,6 +15,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   final AuthService _authService;
   final ProfileService _profileService;
   final OrderService _orderService;
+  final BranchService _branchService;
 
   CheckoutCubit(
     this._cartCubit,
@@ -21,10 +23,28 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     this._authService,
     this._profileService,
     this._orderService,
-  ) : super(CheckoutInitial(selectedBranch: appBranches.first));
+    this._branchService,
+  ) : super(CheckoutInitial(
+          branches: appBranches,
+          selectedBranch: appBranches.isNotEmpty ? appBranches.first : null,
+        )) {
+    loadBranches();
+  }
 
   static const int _visaIntegrationId = 5577397;
   static const int _walletIntegrationId = 5584969;
+
+  void loadBranches() async {
+    final branches = await _branchService.getBranches();
+    if (state is CheckoutInitial) {
+      final currentState = state as CheckoutInitial;
+      emit(CheckoutInitial(
+        selectedMethod: currentState.selectedMethod,
+        branches: branches,
+        selectedBranch: currentState.selectedBranch ?? (branches.isNotEmpty ? branches.first : null),
+      ));
+    }
+  }
 
   void selectPaymentMethod(String method) {
     if (state is CheckoutInitial) {
@@ -32,6 +52,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       emit(CheckoutInitial(
         selectedMethod: method,
         selectedBranch: currentState.selectedBranch,
+        branches: currentState.branches,
       ));
     }
   }
@@ -42,6 +63,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       emit(CheckoutInitial(
         selectedMethod: currentState.selectedMethod,
         selectedBranch: branch,
+        branches: currentState.branches,
       ));
     }
   }
@@ -130,16 +152,22 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         emit(CheckoutPaymentRedirect(redirectionUrl));
       } else {
         // Cashier flow (Simulated)
-        final String? branchName = currentState.selectedBranch?.nameEn;
+        final String? branchId = currentState.selectedBranch?.id;
             
         await Future.delayed(const Duration(seconds: 2));
-        await _cartCubit.checkout(branchName: branchName);
+        await _cartCubit.checkout(branchId: branchId);
         emit(CheckoutSuccess());
       }
     } catch (e) {
       emit(CheckoutError(e.toString()));
       // Reset to initial with the same method so user can try again
-      emit(CheckoutInitial(selectedMethod: selectedMethod));
+      if (state is! CheckoutInitial) {
+        emit(CheckoutInitial(
+          selectedMethod: selectedMethod,
+          branches: appBranches,
+          selectedBranch: currentState.selectedBranch,
+        ));
+      }
     }
   }
 
@@ -154,8 +182,8 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     try {
       final double totalAmount = cartState.subtotal - cartState.discount;
 
-      final String? branchName = state is CheckoutInitial 
-          ? (state as CheckoutInitial).selectedBranch?.nameEn 
+      final String? branchId = state is CheckoutInitial 
+          ? (state as CheckoutInitial).selectedBranch?.id 
           : null;
 
       final response = await _orderService.saveOrder(
@@ -163,7 +191,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         items: items.map((e) => e.toJson()).toList(),
         total: totalAmount,
         status: 'Paid',
-        branchName: branchName,
+        branchId: branchId,
       );
 
       print('DEBUG: Order successfully saved with ID: $response');

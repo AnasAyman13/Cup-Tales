@@ -117,6 +117,15 @@ class AppLocalizations {
       ? 'تنبيهات غير مفعلة (تجريبي)'
       : 'Notifications not implemented yet (Demo)';
 
+  String get alertPreferences => isAr ? 'تفضيلات التنبيهات' : 'Alert Preferences';
+  String get pushNotifications => isAr ? 'إشعارات الهاتف' : 'Push Notifications';
+  String get stayUpdatedOrders =>
+      isAr ? 'ابق على اطلاع بحالة طلباتك' : 'Stay updated on your orders';
+  String get emailOffers => isAr ? 'عروض البريد الإلكتروني' : 'Email Offers';
+  String get getDiscountsInbox => isAr
+      ? 'احصل على خصومات حصرية عبر بريدك'
+      : 'Receive special discounts directly to your inbox';
+
   String get privacyPolicy => isAr ? 'سياسة الخصوصية' : 'Privacy Policy';
   String get privacyPolicyDemo => isAr
       ? 'السياسة قيد المراجعة (تجريبي)'

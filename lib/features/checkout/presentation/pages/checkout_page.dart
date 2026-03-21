@@ -3,8 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../../../core/services/paymob_service.dart';
-import '../../../../core/services/order_service.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../features/auth/data/profile_service.dart';
 import '../../../../features/cart/presentation/cubit/cart_cubit.dart';
@@ -62,13 +60,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget build(BuildContext context) {
     context.watch<LanguageCubit>();
     return BlocProvider(
-      create: (_) => CheckoutCubit(
-        context.read<CartCubit>(),
-        sl<PaymobService>(),
-        sl<AuthService>(),
-        sl<ProfileService>(),
-        sl<OrderService>(),
-      ),
+    create: (_) => sl<CheckoutCubit>(param1: context.read<CartCubit>()),
       child: Scaffold(
         backgroundColor: Colors.grey.shade50,
         appBar: AppBar(
@@ -176,10 +168,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     const SizedBox(height: 12),
                     BlocBuilder<CheckoutCubit, CheckoutState>(
                       builder: (context, state) {
+                        final branches = state is CheckoutInitial ? state.branches : appBranches;
                         final selectedBranch = state is CheckoutInitial ? state.selectedBranch : null;
                         
+                        if (branches.isEmpty) {
+                          return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+                        }
+
                         return Column(
-                          children: appBranches.map((branch) {
+                          children: branches.map((branch) {
                             final isSelected = selectedBranch?.id == branch.id;
                             final isEn = Localizations.localeOf(context).languageCode == 'en';
                             
@@ -226,9 +223,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                                   padding: EdgeInsets.zero,
                                                   constraints: const BoxConstraints(),
                                                   onPressed: () async {
-                                                    final url = Uri.parse(branch.mapUrl);
-                                                    if (await canLaunchUrl(url)) {
-                                                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                                                    try {
+                                                      final url = Uri.parse(branch.location);
+                                                      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                                        if (context.mounted) {
+                                                          ScaffoldMessenger.of(context).showSnackBar(
+                                                            SnackBar(content: Text(context.tr('Unable to open maps', 'تعذر فتح الخرائط')))
+                                                          );
+                                                        }
+                                                      }
+                                                    } catch (e) {
+                                                      if (context.mounted) {
+                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                          SnackBar(content: Text(context.tr('Unable to open maps', 'تعذر فتح الخرائط')))
+                                                        );
+                                                      }
                                                     }
                                                   },
                                                   tooltip: context.tr('View on Map', 'عرض على الخريطة'),

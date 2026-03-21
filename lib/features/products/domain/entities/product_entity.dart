@@ -10,6 +10,7 @@ class ProductEntity extends Equatable {
   final double? priceS;
   final double? priceM;
   final double? priceL;
+  final String? branchId;
 
   const ProductEntity({
     required this.id,
@@ -21,6 +22,7 @@ class ProductEntity extends Equatable {
     this.priceS,
     this.priceM,
     this.priceL,
+    this.branchId,
   });
 
   // Helper to safely get the "starting" price or base price
@@ -37,5 +39,6 @@ class ProductEntity extends Equatable {
         priceS,
         priceM,
         priceL,
+        branchId,
       ];
 }

@@ -11,14 +11,16 @@ abstract class CheckoutState extends Equatable {
 class CheckoutInitial extends CheckoutState {
   final String selectedMethod;
   final Branch? selectedBranch;
+  final List<Branch> branches;
 
   const CheckoutInitial({
     this.selectedMethod = 'Cashier',
     this.selectedBranch,
+    this.branches = const [],
   });
 
   @override
-  List<Object?> get props => [selectedMethod, selectedBranch];
+  List<Object?> get props => [selectedMethod, selectedBranch, branches];
 }
 
 class CheckoutProcessing extends CheckoutState {}

@@ -1,7 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'home_state.dart';
 import '../../../products/domain/entities/product_entity.dart';
 import '../../domain/entities/category_entity.dart';
+import '../../data/models/offer_model.dart';
 
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit() : super(HomeInitial());
@@ -12,10 +14,10 @@ class HomeCubit extends Cubit<HomeState> {
     await Future.delayed(const Duration(seconds: 1));
 
     try {
-      final mockBanners = [
-        'assets/images/banners/banner1.png',
-        'assets/images/banners/banner2.png',
-      ];
+      final response = await Supabase.instance.client.from('offers').select();
+      final banners = (response as List)
+          .map((e) => OfferModel.fromJson(e as Map<String, dynamic>))
+          .toList();
 
       final mockProducts = [
         const ProductEntity(
@@ -76,7 +78,7 @@ class HomeCubit extends Cubit<HomeState> {
 
       emit(
         HomeLoaded(
-          banners: mockBanners,
+          banners: banners,
           featuredProducts: mockProducts,
           categories: mockCategories,
           selectedCategoryId: mockCategories.first.id,

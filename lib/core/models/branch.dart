@@ -6,7 +6,8 @@ class Branch extends Equatable {
   final String nameAr;
   final String areaEn;
   final String areaAr;
-  final String mapUrl;
+  final String location;
+  final bool active;
 
   const Branch({
     required this.id,
@@ -14,36 +15,59 @@ class Branch extends Equatable {
     required this.nameAr,
     required this.areaEn,
     required this.areaAr,
-    required this.mapUrl,
+    required this.location,
+    this.active = true,
   });
 
+  factory Branch.fromMap(Map<String, dynamic> map) {
+    final String name = map['name'] as String? ?? '';
+    return Branch(
+      id: map['id'] as String? ?? '',
+      nameEn: name,
+      nameAr: name,
+      areaEn: '',
+      areaAr: '',
+      location: map['location'] as String? ?? map['map_url'] as String? ?? '',
+      active: map['active'] as bool? ?? true,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': nameAr,
+      'location': location,
+      'active': active,
+    };
+  }
+
   @override
-  List<Object?> get props => [id, nameEn, nameAr, areaEn, areaAr, mapUrl];
+  List<Object?> get props => [id, nameEn, nameAr, areaEn, areaAr, location, active];
 }
 
-final List<Branch> appBranches = [
+List<Branch> appBranches = [
   const Branch(
     id: 'rehab',
     nameEn: 'Rehab Branch',
     nameAr: 'فرع الرحاب',
     areaEn: 'New Cairo',
     areaAr: 'القاهرة الجديدة',
-    mapUrl: 'https://maps.app.goo.gl/NAZnJfaY99HrSBYJ9',
+    location: 'https://maps.app.goo.gl/NAZnJfaY99HrSBYJ9',
   ),
   const Branch(
     id: 'mahalla1',
-    nameEn: 'Mahalla Branch 1',
-    nameAr: 'فرع المحلة 1',
+    nameEn: 'Mahalla 1 (Tanta Road)',
+    nameAr: 'فرع المحلة 1 - طريق طنطا',
     areaEn: 'El Mahalla El Kubra',
     areaAr: 'المحلة الكبرى',
-    mapUrl: 'https://maps.app.goo.gl/rRnhstcoyHXMKyaG8',
+    location: 'https://maps.app.goo.gl/rRnhstcoyHXMKyaG8',
   ),
   const Branch(
     id: 'mahalla2',
-    nameEn: 'Mahalla Branch 2',
-    nameAr: 'فرع المحلة 2',
+    nameEn: 'Mahalla 2 (Reda Hafez St)',
+    nameAr: 'فرع المحلة 2 - ش رضا حافظ',
     areaEn: 'El Mahalla El Kubra',
     areaAr: 'المحلة الكبرى',
-    mapUrl: 'https://maps.app.goo.gl/kTpifykykRoc9DRFA',
+    location: 'https://maps.app.goo.gl/kTpifykykRoc9DRFA',
   ),
 ];

@@ -11,6 +11,7 @@ class ProductModel extends ProductEntity {
     super.priceS,
     super.priceM,
     super.priceL,
+    super.branchId,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
@@ -24,6 +25,7 @@ class ProductModel extends ProductEntity {
       priceS: (json['price_s'] as num?)?.toDouble(),
       priceM: (json['price_m'] as num?)?.toDouble(),
       priceL: (json['price_l'] as num?)?.toDouble(),
+      branchId: json['branch_id']?.toString(),
     );
   }
 }

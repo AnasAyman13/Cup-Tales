@@ -22,11 +22,11 @@ class OrdersLoaded extends OrdersState {
   const OrdersLoaded(this.orders);
 
   List<OrderEntity> get activeOrders => orders
-      .where((o) => o.status == 'preparing' || o.status == 'Paid')
+      .where((o) => o.status != 'delivered' && o.status != 'cancelled')
       .toList();
 
   List<OrderEntity> get historyOrders => orders
-      .where((o) => o.status == 'delivered' || o.status == 'completed')
+      .where((o) => o.status == 'delivered' || o.status == 'cancelled')
       .toList();
 
   @override

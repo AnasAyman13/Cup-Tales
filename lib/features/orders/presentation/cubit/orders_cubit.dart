@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/repositories/orders_repository_impl.dart';
@@ -11,6 +12,7 @@ import '../../domain/entities/order_item_entity.dart';
 class OrdersCubit extends Cubit<OrdersState> {
   late final GetUserOrdersUseCase _getUserOrders;
   final HiveService _hive = di.sl<HiveService>();
+  RealtimeChannel? _channel;
 
   OrdersCubit() : super(const OrdersInitial()) {
     // Wait for Hive AND Supabase to be ready before initializing usecase or loading
@@ -19,6 +21,35 @@ class OrdersCubit extends Cubit<OrdersState> {
         OrdersRepositoryImpl(Supabase.instance.client),
       );
       _loadFromCache();
+      _startSubscription();
+    });
+  }
+
+  void _startSubscription() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      _subscribeToOrders(user.id);
+    }
+  }
+
+  void _subscribeToOrders(String userId) {
+    _channel?.unsubscribe();
+
+    _channel = Supabase.instance.client
+        .channel('orders-debug')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'orders',
+          callback: (payload) {
+            print(
+                'DEBUG: ANY change on orders table: ${payload.eventType} - ${payload.newRecord}');
+            _fetchOrdersOnly();
+          },
+        );
+
+    _channel!.subscribe((status, [error]) {
+      print('DEBUG: Channel status: $status error: $error');
     });
   }
 
@@ -47,7 +78,7 @@ class OrdersCubit extends Cubit<OrdersState> {
           items: itemsList,
           totalAmount: (map['total_amount'] as num).toDouble(),
           status: map['status'],
-          branchName: map['branch_name']?.toString(),
+          branchId: map['branch_id']?.toString(),
           createdAt: DateTime.parse(map['created_at']),
         );
       }).toList();
@@ -72,7 +103,7 @@ class OrdersCubit extends Cubit<OrdersState> {
                   .toList(),
               'total_amount': e.totalAmount,
               'status': e.status,
-              'branch_name': e.branchName,
+              'branch_id': e.branchId,
               'created_at': e.createdAt.toIso8601String(),
             })
         .toList();
@@ -80,6 +111,14 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   Future<void> loadOrders() async {
+    await _fetchOrdersOnly();
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      _subscribeToOrders(user.id);
+    }
+  }
+
+  Future<void> _fetchOrdersOnly() async {
     await di.appReady;
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
@@ -87,7 +126,11 @@ class OrdersCubit extends Cubit<OrdersState> {
       return;
     }
 
-    emit(const OrdersLoading());
+    // Don't emit loading if we already have data (prevents flicker on realtime updates)
+    if (state is! OrdersLoaded) {
+      emit(const OrdersLoading());
+    }
+
     try {
       final orders = await _getUserOrders(user.id);
       print('DEBUG: Fetched ${orders.length} orders from Supabase');
@@ -96,5 +139,11 @@ class OrdersCubit extends Cubit<OrdersState> {
     } catch (e) {
       emit(OrdersError('Failed to load orders: ${e.toString()}'));
     }
+  }
+
+  @override
+  Future<void> close() {
+    _channel?.unsubscribe();
+    return super.close();
   }
 }

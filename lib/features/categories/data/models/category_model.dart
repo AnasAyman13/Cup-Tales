@@ -6,6 +6,7 @@ class CategoryModel extends CategoryEntity {
     required super.nameEn,
     required super.nameAr,
     required super.image,
+    super.branchId,
   });
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +15,7 @@ class CategoryModel extends CategoryEntity {
       nameEn: json['name_en'] as String? ?? json['name'] as String? ?? '',
       nameAr: json['name_ar'] as String? ?? '',
       image: json['image'] as String? ?? '',
+      branchId: json['branch_id']?.toString(),
     );
     print(
         'DEBUG: CategoryModel created: id=${model.id}, en=${model.nameEn}, ar=${model.nameAr}');

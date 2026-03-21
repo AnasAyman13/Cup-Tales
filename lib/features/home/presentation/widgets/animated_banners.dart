@@ -1,26 +1,25 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../domain/entities/offer_entity.dart';
 
 class AnimatedBanners extends StatefulWidget {
-  const AnimatedBanners({super.key});
+  final List<OfferEntity> banners;
+  const AnimatedBanners({super.key, required this.banners});
 
   @override
   State<AnimatedBanners> createState() => _AnimatedBannersState();
 }
-
 class _AnimatedBannersState extends State<AnimatedBanners> {
   final PageController _pageController = PageController(viewportFraction: 0.9);
   int _currentPage = 0;
   Timer? _timer;
-
-  final List<String> _banners = [
-    'assets/images/banners/panner1.jpg',
-    'assets/images/banners/panner2.jpg',
-  ];
+  final List<OfferEntity> _banners = [];
 
   @override
   void initState() {
     super.initState();
+    _banners.addAll(widget.banners);
     _startTimer();
   }
 
@@ -86,26 +85,51 @@ class _AnimatedBannersState extends State<AnimatedBanners> {
     );
   }
 
-  Widget _buildBannerItem(String imagePath) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8.0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Image.asset(
-          imagePath,
-          fit: BoxFit.cover,
+  Widget _buildBannerItem(OfferEntity offer) {
+    return GestureDetector(
+      onTap: () async {
+        if (offer.link != null && offer.link!.isNotEmpty) {
+          final uri = Uri.parse(offer.link!);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8.0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: _buildBannerImage(offer.imageUrl),
         ),
       ),
     );
+  }
+
+  Widget _buildBannerImage(String imageUrl) {
+    if (imageUrl.startsWith('http')) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            Image.asset('assets/images/banners/banner1.png', fit: BoxFit.cover),
+      );
+    } else {
+      return Image.asset(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image_not_supported, size: 50),
+      );
+    }
   }
 }

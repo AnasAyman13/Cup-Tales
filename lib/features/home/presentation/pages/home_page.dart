@@ -124,7 +124,7 @@ class HomePage extends StatelessWidget {
                     ),
 
                     // ── Promotional Banners ──
-                    const AnimatedBanners(),
+                    AnimatedBanners(banners: state.banners),
                     const SizedBox(height: 10),
 
                     Padding(
