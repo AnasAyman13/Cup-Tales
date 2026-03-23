@@ -38,9 +38,25 @@ class _PaymobPaymentScreenState extends State<PaymobPaymentScreen> {
           onPageFinished: (url) {
             print('DEBUG: WebView finished loading URL: $url');
             
-            // Aggressively hide Mastercard/Visa and other redundant elements
+            // Aggressively hide Mastercard/Visa logos, card icons, and the Checkout header
             _controller.runJavaScript("""
-              document.querySelectorAll('img[src*="mastercard"], img[src*="visa"], .cards-icons, #card-logos').forEach(el => el.style.display = 'none');
+              (function() {
+                // Hide Visa/Mastercard images and logo containers
+                document.querySelectorAll(
+                  'img[src*="mastercard"], img[src*="visa"], img[src*="master"], '
+                  + '.cards-icons, #card-logos, .card-logos, .payment-logo'
+                ).forEach(function(el) { el.style.display = 'none'; });
+
+                // Hide 'Checkout' / page header
+                document.querySelectorAll(
+                  'h1, h2, h3, .header, .checkout-header, [class*="header"], [class*="title"]'
+                ).forEach(function(el) {
+                  var text = el.innerText || el.textContent || '';
+                  if (text.trim().toLowerCase().includes('checkout')) {
+                    el.style.display = 'none';
+                  }
+                });
+              })();
             """);
 
             // Hide spinner ONLY after JS has run

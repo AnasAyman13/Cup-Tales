@@ -226,7 +226,11 @@ class CartCubit extends Cubit<CartState> {
 
   // ── Checkout ────────────────────────────────────────────────────────────
 
-  Future<void> checkout({String? branchId}) async {
+  Future<void> checkout({
+    String? branchName,
+    double promoDiscount = 0.0,
+    String? appliedPromo,
+  }) async {
     final user = _client.auth.currentUser;
     if (user == null || state is! CartLoaded) return;
 
@@ -236,13 +240,16 @@ class CartCubit extends Cubit<CartState> {
 
     emit(CartCheckingOut());
     try {
-      final double totalAmount = cartState.subtotal - cartState.discount;
+      final double totalAmount =
+          cartState.subtotal - cartState.discount - promoDiscount;
       
       final orderData = {
         'user_id': user.id,
         'status': 'preparing',
         'total_amount': totalAmount,
-        'branch_id': branchId,
+        'branch_name': branchName,
+        'promo_code': appliedPromo,
+        'discount_amount': promoDiscount,
         'items': items.map((e) => {
           'product_id': e.productId,
           'product_name': e.productName,

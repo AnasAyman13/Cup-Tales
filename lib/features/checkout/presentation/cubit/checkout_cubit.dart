@@ -7,6 +7,7 @@ import '../../../../core/services/auth_service.dart';
 import '../../../../features/auth/data/profile_service.dart';
 import '../../../../core/services/order_service.dart';
 import '../../../../core/services/branch_service.dart';
+import '../../../../core/services/promo_code_service.dart';
 import '../../../../core/models/branch.dart';
 
 class CheckoutCubit extends Cubit<CheckoutState> {
@@ -16,6 +17,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   final ProfileService _profileService;
   final OrderService _orderService;
   final BranchService _branchService;
+  final PromoCodeService _promoCodeService;
 
   CheckoutCubit(
     this._cartCubit,
@@ -24,6 +26,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     this._profileService,
     this._orderService,
     this._branchService,
+    this._promoCodeService,
   ) : super(CheckoutInitial(
           branches: appBranches,
           selectedBranch: appBranches.isNotEmpty ? appBranches.first : null,
@@ -34,45 +37,87 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   static const int _visaIntegrationId = 5577397;
   static const int _walletIntegrationId = 5584969;
 
+  // ── Branch loading ──────────────────────────────────────────────────────────
+
   void loadBranches() async {
     final branches = await _branchService.getBranches();
     if (state is CheckoutInitial) {
-      final currentState = state as CheckoutInitial;
-      emit(CheckoutInitial(
-        selectedMethod: currentState.selectedMethod,
+      final s = state as CheckoutInitial;
+      emit(s.copyWith(
         branches: branches,
-        selectedBranch: currentState.selectedBranch ?? (branches.isNotEmpty ? branches.first : null),
+        selectedBranch: s.selectedBranch ?? (branches.isNotEmpty ? branches.first : null),
       ));
     }
   }
 
+  // ── Selections ──────────────────────────────────────────────────────────────
+
   void selectPaymentMethod(String method) {
     if (state is CheckoutInitial) {
-      final currentState = state as CheckoutInitial;
-      emit(CheckoutInitial(
-        selectedMethod: method,
-        selectedBranch: currentState.selectedBranch,
-        branches: currentState.branches,
-      ));
+      emit((state as CheckoutInitial).copyWith(selectedMethod: method));
     }
   }
 
   void selectBranch(Branch branch) {
     if (state is CheckoutInitial) {
-      final currentState = state as CheckoutInitial;
-      emit(CheckoutInitial(
-        selectedMethod: currentState.selectedMethod,
-        selectedBranch: branch,
-        branches: currentState.branches,
+      emit((state as CheckoutInitial).copyWith(selectedBranch: branch));
+    }
+  }
+
+  // ── Promo Code ──────────────────────────────────────────────────────────────
+
+  Future<void> applyPromoCode(String code) async {
+    if (code.trim().isEmpty) return;
+    if (state is! CheckoutInitial) return;
+
+    final currentState = state as CheckoutInitial;
+
+    // Get current subtotal from cart
+    double subtotal = 0.0;
+    if (_cartCubit.state is CartLoaded) {
+      subtotal = (_cartCubit.state as CartLoaded).subtotal;
+    }
+
+    // Emit transient loading state (keeps the page intact)
+    emit(CheckoutValidatingPromo());
+
+    final result = await _promoCodeService.validate(code, subtotal);
+
+    if (result is PromoValid) {
+      emit(currentState.copyWith(
+        appliedPromo: result.code,
+        promoDiscount: result.discountAmount,
+        promoError: null,
+      ));
+    } else if (result is PromoInvalid) {
+      emit(currentState.copyWith(
+        appliedPromo: null,
+        promoDiscount: 0.0,
+        promoError: result.arabicReason,
       ));
     }
   }
+
+  void removePromoCode() {
+    if (state is CheckoutInitial) {
+      emit((state as CheckoutInitial).copyWith(
+        appliedPromo: null,
+        promoDiscount: 0.0,
+        promoError: null,
+      ));
+    }
+  }
+
+  // ── Payment Processing ──────────────────────────────────────────────────────
 
   Future<void> processPayment({String? walletNumber}) async {
     final currentState = state;
     if (currentState is! CheckoutInitial) return;
 
     final String selectedMethod = currentState.selectedMethod;
+    final double promoDiscount = currentState.promoDiscount;
+    final String? appliedPromo = currentState.appliedPromo;
+
     emit(CheckoutProcessing());
 
     try {
@@ -100,11 +145,11 @@ class CheckoutCubit extends Cubit<CheckoutState> {
           'phone_number': phoneNumber,
         };
 
-        // 3. Get Cart Total
+        // 3. Get Cart Total (with promo applied)
         double amount = 0.0;
         if (_cartCubit.state is CartLoaded) {
           final cartState = _cartCubit.state as CartLoaded;
-          amount = cartState.subtotal - cartState.discount;
+          amount = cartState.subtotal - cartState.discount - promoDiscount;
         }
 
         if (amount <= 0) throw Exception('Invalid order amount');
@@ -129,13 +174,12 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
         // 5. Redirection Flow
         String redirectionUrl = '';
-        
+
         if (selectedMethod == 'Visa') {
           const int iframeId = 1014745;
           print('DEBUG: Visa selected, using Iframe URL ($iframeId)');
           redirectionUrl = 'https://accept.paymob.com/api/acceptance/iframes/$iframeId?payment_token=$paymentToken';
         } else {
-          // Mandatory for Wallets to avoid GET error
           print('DEBUG: Wallet selected, calling initiatePayment');
           redirectionUrl = await _paymobService.initiatePayment(
             paymentToken: paymentToken,
@@ -146,31 +190,51 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         print('DEBUG: Final Redirection URL ready: $redirectionUrl');
 
         if (redirectionUrl.isEmpty) {
-          throw Exception('Failed to get redirection URL from Paymob for $selectedMethod. Please check your console for the full response.');
+          throw Exception('Failed to get redirection URL from Paymob for $selectedMethod.');
         }
+
+        // Stash promo + branch info so savePaidOrder() can recover it
+        // from the WebView screen (which is a different widget tree).
+        _pendingAppliedPromo = currentState.appliedPromo;
+        _pendingPromoDiscount = currentState.promoDiscount;
+        _pendingBranchName = currentState.selectedBranch?.nameAr ?? '';
 
         emit(CheckoutPaymentRedirect(redirectionUrl));
       } else {
-        // Cashier flow (Simulated)
-        final String? branchId = currentState.selectedBranch?.id;
-            
+        // ── Cash / Cashier flow ──────────────────────────────────────────────
+        final String branchName = currentState.selectedBranch?.nameAr ?? '';
+
         await Future.delayed(const Duration(seconds: 2));
-        await _cartCubit.checkout(branchId: branchId);
+        await _cartCubit.checkout(
+          branchName: branchName,
+          promoDiscount: promoDiscount,
+          appliedPromo: appliedPromo,
+        );
+
+        // Increment usage after successful cash order
+        if (appliedPromo != null && appliedPromo.isNotEmpty) {
+          _promoCodeService.incrementUsage(appliedPromo);
+        }
+
         emit(CheckoutSuccess());
       }
     } catch (e) {
       emit(CheckoutError(e.toString()));
-      // Reset to initial with the same method so user can try again
       if (state is! CheckoutInitial) {
         emit(CheckoutInitial(
           selectedMethod: selectedMethod,
           branches: appBranches,
           selectedBranch: currentState.selectedBranch,
+          appliedPromo: currentState.appliedPromo,
+          promoDiscount: currentState.promoDiscount,
         ));
       }
     }
   }
 
+  // ── Save Paid Order (Visa / Wallet) ─────────────────────────────────────────
+
+  /// Called from the WebView after Paymob confirms success.
   Future<String?> savePaidOrder() async {
     final user = _authService.currentUser;
     if (user == null || _cartCubit.state is! CartLoaded) return null;
@@ -179,20 +243,36 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     final items = cartState.items;
     if (items.isEmpty) return null;
 
-    try {
-      final double totalAmount = cartState.subtotal - cartState.discount;
+    // Recover promo state: at this point we are in CheckoutPaymentRedirect or
+    // a restored CheckoutInitial; we stashed promo in the state before emitting
+    // CheckoutPaymentRedirect, so read it back via a stored reference.
+    // Since processPayment captured these before emitting, we pass them
+    // through the _pendingPromo helpers below.
+    final String? appliedPromo = _pendingAppliedPromo;
+    final double promoDiscount = _pendingPromoDiscount;
 
-      final String? branchId = state is CheckoutInitial 
-          ? (state as CheckoutInitial).selectedBranch?.id 
-          : null;
+    try {
+      final double totalAmount =
+          cartState.subtotal - cartState.discount - promoDiscount;
+
+      final String branchName = state is CheckoutInitial
+          ? ((state as CheckoutInitial).selectedBranch?.nameAr ?? '')
+          : _pendingBranchName;
 
       final response = await _orderService.saveOrder(
         userId: user.id,
         items: items.map((e) => e.toJson()).toList(),
         total: totalAmount,
         status: 'Paid',
-        branchId: branchId,
+        branchName: branchName,
+        appliedPromo: appliedPromo,
+        promoDiscount: promoDiscount,
       );
+
+      // Increment promo usage
+      if (appliedPromo != null && appliedPromo.isNotEmpty) {
+        _promoCodeService.incrementUsage(appliedPromo);
+      }
 
       print('DEBUG: Order successfully saved with ID: $response');
       return response;
@@ -201,4 +281,13 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       rethrow;
     }
   }
+
+  // ── Pending state helpers (bridge CheckoutInitial → WebView) ───────────────
+  // These are set just before we redirect to the WebView, and read back in
+  // savePaidOrder() which is called from the WebView screen.
+
+  String? _pendingAppliedPromo;
+  double _pendingPromoDiscount = 0.0;
+  String _pendingBranchName = '';
+
 }

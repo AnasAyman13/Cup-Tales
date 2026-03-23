@@ -78,7 +78,7 @@ class OrdersCubit extends Cubit<OrdersState> {
           items: itemsList,
           totalAmount: (map['total_amount'] as num).toDouble(),
           status: map['status'],
-          branchId: map['branch_id']?.toString(),
+          branchName: map['branch_name'] as String? ?? '',
           createdAt: DateTime.parse(map['created_at']),
         );
       }).toList();
@@ -103,7 +103,7 @@ class OrdersCubit extends Cubit<OrdersState> {
                   .toList(),
               'total_amount': e.totalAmount,
               'status': e.status,
-              'branch_id': e.branchId,
+              'branch_name': e.branchName,
               'created_at': e.createdAt.toIso8601String(),
             })
         .toList();

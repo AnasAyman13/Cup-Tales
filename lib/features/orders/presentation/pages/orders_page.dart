@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/order_entity.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/language_cubit.dart';
+import '../../../../core/utils/translation_helper.dart';
 import '../cubit/orders_cubit.dart';
 import '../cubit/orders_state.dart';
-import '../../../../core/models/branch.dart';
 
 class OrdersPage extends StatelessWidget {
   const OrdersPage({super.key});
@@ -268,7 +268,7 @@ class _OrderCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            _translateStatus(context, order.status),
+                            TranslationHelper.translateStatus(context, order.status),
                             style: TextStyle(
                               color: _getStatusTextColor(order.status),
                               fontWeight: FontWeight.bold,
@@ -302,7 +302,7 @@ class _OrderCard extends StatelessWidget {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
-                            '${item.quantity}x ${_translateProductName(context, item.productName, item.productNameAr)}',
+                            '${item.quantity}x ${TranslationHelper.translateProductName(context, item.productName, item.productNameAr)}',
                             style: const TextStyle(
                               fontSize: 14,
                               color: Colors.black87,
@@ -318,7 +318,7 @@ class _OrderCard extends StatelessWidget {
                         const Icon(Icons.storefront, size: 14, color: Colors.grey),
                         const SizedBox(width: 4),
                         Text(
-                          '${context.tr('Branch:', 'الفرع:')} ${_getBranchName(context, order.branchId)}',
+                          '${context.tr('Branch:', 'الفرع:')} ${_getBranchName(order.branchName)}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -366,46 +366,19 @@ class _OrderCard extends StatelessWidget {
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 
-  String _translateProductName(BuildContext context, String name, String? nameAr) {
-    if (nameAr != null && nameAr.isNotEmpty) return nameAr;
-    
-    final upper = name.toUpperCase().trim();
-    if (upper.contains('MINT LEMON')) return 'ليمون نعناع';
-    if (upper.contains('MANGO')) return 'مانجو فريش';
-    if (upper.contains('ORANGE')) return 'برتقال فريش';
-    if (upper.contains('STRAWBERRY')) return 'فراولة فريش';
-    if (upper.contains('COFFEE')) return 'قهوة';
-    if (upper.contains('TEA')) return 'شاي';
-    
-    return name;
-  }
-
-  String _translateStatus(BuildContext context, String status) {
-    if (status == 'pending') return context.tr('PENDING', 'قيد الانتظار');
-    if (status == 'preparing') return context.tr('PREPARING', 'جاري التحضير');
-    if (status == 'ready') return context.tr('READY', 'جاهز للاستلام');
-    if (status == 'delivered') return context.tr('DELIVERED', 'تم التسليم');
-    if (status == 'cancelled') return context.tr('CANCELLED', 'ملغي');
-    return status.toUpperCase();
-  }
-
-  String _getBranchName(BuildContext context, String? branchId) {
-    if (branchId == null || branchId.isEmpty) return 'فرع كب تيلز';
-    
-    final branch = appBranches.firstWhere(
-      (b) => b.id == branchId,
-      orElse: () => appBranches.first,
-    );
-    
-    return context.isArabic ? branch.nameAr : branch.nameEn;
+  String _getBranchName(String branchName) {
+    return branchName.isEmpty ? 'فرع كب تيلز' : branchName;
   }
 
   Color _getStatusBgColor(String status) {
-    switch (status) {
+    final s = status.toLowerCase();
+    switch (s) {
       case 'pending':
       case 'preparing':
+      case 'paid':
         return Colors.amber.withOpacity(0.12);
       case 'ready':
+      case 'completed':
         return const Color(0xFF2D3194).withOpacity(0.12);
       case 'delivered':
         return Colors.green.withOpacity(0.12);
@@ -417,11 +390,14 @@ class _OrderCard extends StatelessWidget {
   }
 
   Color _getStatusTextColor(String status) {
-    switch (status) {
+    final s = status.toLowerCase();
+    switch (s) {
       case 'pending':
       case 'preparing':
+      case 'paid':
         return Colors.amber.shade900;
       case 'ready':
+      case 'completed':
         return const Color(0xFF2D3194);
       case 'delivered':
         return Colors.green.shade700;
@@ -459,3 +435,4 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+

@@ -8,7 +8,9 @@ class OrderModel extends OrderEntity {
     required super.items,
     required super.totalAmount,
     required super.status,
-    super.branchId,
+    super.branchName = '',
+    super.promoCode,
+    super.discountAmount = 0.0,
     required super.createdAt,
   });
 
@@ -32,7 +34,9 @@ class OrderModel extends OrderEntity {
       items: items,
       totalAmount: ((json['total_amount'] ?? json['total'] ?? 0.0) as num).toDouble(),
       status: json['status'] as String,
-      branchId: json['branch_id']?.toString() ?? '',
+      branchName: json['branch_name'] as String? ?? '',
+      promoCode: json['promo_code'] as String?,
+      discountAmount: ((json['discount_amount'] ?? 0.0) as num).toDouble(),
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -44,6 +48,9 @@ class OrderModel extends OrderEntity {
         items,
         totalAmount,
         status,
+        branchName,
+        promoCode,
+        discountAmount,
         createdAt,
       ];
 
@@ -61,7 +68,9 @@ class OrderModel extends OrderEntity {
       }).toList(),
       'total_amount': totalAmount,
       'status': status,
-      'branch_id': branchId,
+      'branch_name': branchName,
+      'promo_code': promoCode,
+      'discount_amount': discountAmount,
       'created_at': createdAt.toIso8601String(),
     };
   }

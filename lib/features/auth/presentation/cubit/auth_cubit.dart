@@ -47,6 +47,16 @@ class AuthCubit extends Cubit<AuthState> {
         // This is the ONLY reliable signal for "is the user logged in at startup".
         _isInitialStateHandled = true;
         if (session != null) {
+          // Fetch and cache the full profile data on startup
+          try {
+            final profile = await _profileService.getProfile(session.user.id);
+            if (profile != null) {
+              _hive.profileBox.put('current_user', profile);
+            }
+          } catch (e) {
+            if (kDebugMode) debugPrint('[AuthCubit] profile fetch on startup failed: $e');
+          }
+
           try {
             final role = await _profileService.getUserRole();
             emit(AuthAuthenticated(isAdmin: role == 'admin'));

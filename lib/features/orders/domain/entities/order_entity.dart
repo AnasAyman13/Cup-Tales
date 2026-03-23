@@ -8,7 +8,9 @@ class OrderEntity extends Equatable {
   final List<OrderItemEntity> items;
   final double totalAmount;
   final String status;
-  final String? branchId;
+  final String branchName;
+  final String? promoCode;
+  final double discountAmount;
   final DateTime createdAt;
 
   const OrderEntity({
@@ -17,7 +19,9 @@ class OrderEntity extends Equatable {
     required this.items,
     required this.totalAmount,
     required this.status,
-    this.branchId,
+    this.branchName = '',
+    this.promoCode,
+    this.discountAmount = 0.0,
     required this.createdAt,
   });
 
@@ -28,7 +32,9 @@ class OrderEntity extends Equatable {
         items,
         totalAmount,
         status,
-        branchId,
+        branchName,
+        promoCode,
+        discountAmount,
         createdAt,
       ];
 }

@@ -10,6 +10,7 @@ import '../services/auth_service.dart';
 import '../services/paymob_service.dart';
 import '../services/order_service.dart';
 import '../services/branch_service.dart';
+import '../services/promo_code_service.dart';
 import '../../features/auth/data/profile_service.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/cart/presentation/cubit/cart_cubit.dart';
@@ -44,6 +45,7 @@ void registerSync() {
   sl.registerLazySingleton(() => OrderService());
   sl.registerLazySingleton(() => ProfileService());
   sl.registerLazySingleton(() => BranchService());
+  sl.registerLazySingleton(() => PromoCodeService());
 
   // Features
   sl.registerFactory(() => LanguageCubit());
@@ -58,6 +60,7 @@ void registerSync() {
       sl<ProfileService>(),
       sl<OrderService>(),
       sl<BranchService>(),
+      sl<PromoCodeService>(),
     ),
   );
 
