@@ -300,7 +300,7 @@ class _CoffeeHeroState extends State<_CoffeeHero>
             height: 240,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
             ),
           ),
           // Breathing cup
@@ -345,7 +345,7 @@ class _CoffeeHeroCupPainter extends CustomPainter {
     for (int i = 0; i < 3; i++) {
       canvas.save();
       canvas.translate(0, steamOffsets[i].dy * s);
-      paint.color = Colors.white.withOpacity(steamOffsets[i].dx);
+      paint.color = Colors.white.withValues(alpha: steamOffsets[i].dx);
       canvas.drawRect(steamRects[i], paint);
       canvas.restore();
     }
@@ -521,7 +521,7 @@ class _CupPainter extends CustomPainter {
     final delays = [0.0, 0.2, 0.4];
     for (int i = 0; i < steamPaths.length; i++) {
       final opacity = ((steamOpacity - delays[i]).clamp(0.0, 0.8)) / 0.8;
-      paint.color = Colors.white.withOpacity(opacity * 0.85);
+      paint.color = Colors.white.withValues(alpha: opacity * 0.85);
       canvas.drawPath(steamPaths[i], paint);
     }
 
@@ -605,7 +605,7 @@ class _PhoneMockup extends StatelessWidget {
         border: Border.all(color: const Color(0xFF0F172A), width: 7),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
+            color: Colors.black.withValues(alpha: 0.35),
             blurRadius: 30,
             offset: const Offset(0, 12),
           ),
@@ -652,7 +652,7 @@ class _PhoneMockup extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: kPrimary.withOpacity(0.15)),
+                                        color: kPrimary.withValues(alpha: 0.15)),
                                     color: kSlate50,
                                   ),
                                   child: const Icon(Icons.coffee,
@@ -791,8 +791,8 @@ class _MenuItem extends StatelessWidget {
             height: 34,
             decoration: BoxDecoration(
               color: selected
-                  ? Colors.white.withOpacity(0.2)
-                  : kPrimary.withOpacity(0.1),
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : kPrimary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/widgets/antigravity_loader.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PersonalInfoPage extends StatefulWidget {
@@ -88,7 +89,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             .maybeSingle(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: AntigravityLoaderCore(size: 80));
           }
 
           final profile = snapshot.data;
@@ -126,7 +127,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
+                          color: Colors.black.withValues(alpha: 0.02),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -163,7 +164,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                       ),
                     ),
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const AntigravityLoaderCore(size: 24)
                         : Text(
                             context.tr('Save Changes', 'حفظ التغييرات'),
                             style: const TextStyle(
@@ -232,7 +233,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: AppColors.primary.withOpacity(0.5),
+            color: AppColors.primary.withValues(alpha: 0.5),
           ),
         ),
       ],

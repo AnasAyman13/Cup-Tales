@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class PaymobService {
   final Dio _dio = Dio(
@@ -18,7 +19,7 @@ class PaymobService {
         data: {'api_key': _apiKey},
       );
       final token = response.data['token'] as String;
-      print('DEBUG: Auth Token received: ${token.substring(0, 10)}...${token.substring(token.length - 10)}');
+      debugPrint('DEBUG: Auth Token received: ${token.substring(0, 10)}...${token.substring(token.length - 10)}');
       return token;
     } catch (e) {
       throw Exception('Failed to get Paymob auth token: $e');
@@ -44,7 +45,7 @@ class PaymobService {
           'items': [],
         },
       );
-      print('DEBUG: Register Order Response: ${response.data}');
+      debugPrint('DEBUG: Register Order Response: ${response.data}');
       return response.data['id'];
     } catch (e) {
       throw Exception('Failed to register Paymob order: $e');
@@ -91,7 +92,7 @@ class PaymobService {
           'integration_id': integrationId,
         },
       );
-      print('DEBUG: Get Payment Key Response Success!');
+      debugPrint('DEBUG: Get Payment Key Response Success!');
       return response.data['token'];
     } catch (e) {
       throw Exception('Failed to get Paymob payment key: $e');
@@ -111,7 +112,7 @@ class PaymobService {
         },
       };
       
-      print('DEBUG: Sending Initiate Payment Request Body: $data');
+      debugPrint('DEBUG: Sending Initiate Payment Request Body: $data');
 
       final response = await _dio.post(
         '/acceptance/payments/pay',
@@ -122,7 +123,7 @@ class PaymobService {
         data: data,
       );
 
-      print('DEBUG: Initiate Payment Full Response: ${response.data}');
+      debugPrint('DEBUG: Initiate Payment Full Response: ${response.data}');
 
       // Return the redirection URL (common keys in Paymob response)
       return response.data['redirect_url'] ??

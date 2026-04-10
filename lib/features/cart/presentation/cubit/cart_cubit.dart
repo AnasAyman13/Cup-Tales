@@ -16,28 +16,25 @@ class CartCubit extends Cubit<CartState> {
   void _loadFromCache() {
     if (!_hive.cartBox.isOpen) return;
 
-    final cached = _hive.cartBox.get('items');
-    if (cached != null && cached is List) {
-      // We don't have the user yet, but we can show the UI
-      final items = cached
-          .map((e) => SupabaseCartItem.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
-      emit(CartLoaded(items: items));
+    try {
+      final cached = _hive.cartBox.get('items');
+      if (cached != null && cached is List) {
+        final items = cached
+            .map((e) =>
+                SupabaseCartItem.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        emit(CartLoaded(items: items));
+      }
+    } catch (_) {
+      // Stale / incompatible cache — clear it so the app never crashes
+      // on startup. The next loadCart() will fetch fresh data.
+      _hive.cartBox.delete('items');
+      emit(const CartLoaded(items: []));
     }
   }
 
   void _saveToCache(List<SupabaseCartItem> items) {
-    final data = items
-        .map((e) => {
-              'id': e.id,
-              'user_id': e.userId,
-              'product_id': e.productId,
-              'product_name': e.productName,
-              'price': e.price,
-              'image': e.image,
-              'quantity': e.quantity,
-            })
-        .toList();
+    final data = items.map((e) => e.toJson()).toList();
     _hive.cartBox.put('items', data);
   }
 
@@ -54,10 +51,6 @@ class CartCubit extends Cubit<CartState> {
         (state is CartLoaded ? (state as CartLoaded).discount : 0.0);
     final currentPromo = promoCode ??
         (state is CartLoaded ? (state as CartLoaded).appliedPromoCode : null);
-
-    // If promo code exists but discount is null, we might need to recalculate
-    // (but simpler to just recalculate if we have the percentage, which we don't store)
-    // For now, let's just reset discount if items change, unless we fetch it again
 
     emit(CartLoaded(
       items: items,
@@ -79,10 +72,10 @@ class CartCubit extends Cubit<CartState> {
 
     emit(CartLoading());
     try {
-      // Professional fetch: Join with products to get ALWAYS fresh data
       final data = await _client
           .from('cart')
-          .select('*, products(name, price, price_m, image, image_url)')
+          .select(
+              '*, products(name, name_ar, price, price_m, image, image_url)')
           .eq('user_id', user.id);
 
       final items = (data as List<dynamic>)
@@ -95,7 +88,12 @@ class CartCubit extends Cubit<CartState> {
     }
   }
 
-  // ── Add item to Supabase cart ───────────────────────────────────────────
+  // ── Add item to cart — smart merge by (product_id + selected_size) ─────
+  //
+  // Merge rules:
+  //   • Same product_id AND same selected_size  →  increment quantity
+  //   • Same product_id but different size       →  add as a new row
+  //   • Brand-new product                        →  add as a new row
 
   Future<void> addToCart({
     required String productId,
@@ -103,30 +101,70 @@ class CartCubit extends Cubit<CartState> {
     required double price,
     required String image,
     required int quantity,
+    String? selectedSize,
+    List<String> selectedOptions = const [],
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) return;
 
     try {
-      final existing = await _client
+      // 1. Fetch potential matches by product_id and selected_size
+      var query = _client
           .from('cart')
           .select()
           .eq('user_id', user.id)
-          .eq('product_id', productId)
-          .maybeSingle();
+          .eq('product_id', productId);
 
-      if (existing != null) {
-        final newQty = (existing['quantity'] as int) + quantity;
+      if (selectedSize != null) {
+        query = query.eq('selected_size', selectedSize);
+      } else {
+        query = query.isFilter('selected_size', null);
+      }
+
+      final List<dynamic> potentialMatches = await query;
+      Map<String, dynamic>? exactMatch;
+
+      // 2. Find exact match manually by checking selected_options array
+      for (final row in potentialMatches) {
+        final rawOptions = row['selected_options'];
+        final List<String> dbOptions = (rawOptions is List)
+            ? rawOptions.map((e) => e?.toString() ?? '').toList()
+            : [];
+
+        // Check if options match perfectly (order matters, or we can sort them)
+        bool optionsMatch = dbOptions.length == selectedOptions.length;
+        if (optionsMatch) {
+          final sortedDb = List<String>.from(dbOptions)..sort();
+          final sortedNew = List<String>.from(selectedOptions)..sort();
+          for (int i = 0; i < sortedDb.length; i++) {
+            if (sortedDb[i] != sortedNew[i]) {
+              optionsMatch = false;
+              break;
+            }
+          }
+        }
+
+        if (optionsMatch) {
+          exactMatch = row;
+          break;
+        }
+      }
+
+      if (exactMatch != null) {
+        // ── Merge: increment the qty of the existing exact match row ───────
+        final newQty = (exactMatch['quantity'] as int) + quantity;
         await _client
             .from('cart')
-            .update({'quantity': newQty}).eq('id', existing['id']);
+            .update({'quantity': newQty}).eq('id', exactMatch['id']);
       } else {
-        // Professional Insert: Store relations, quantity AND price
+        // ── Insert: brand-new combination of product + size + options ───────
         await _client.from('cart').insert({
           'user_id': user.id,
           'product_id': productId,
           'quantity': quantity,
-          'price': price, // Persistence fix
+          'price': price,
+          if (selectedSize != null) 'selected_size': selectedSize,
+          if (selectedOptions.isNotEmpty) 'selected_options': selectedOptions,
         });
       }
 
@@ -176,13 +214,12 @@ class CartCubit extends Cubit<CartState> {
 
     final data = await _client
         .from('cart')
-        .select('*, products(name, price, price_m, image, image_url)')
+        .select('*, products(name, name_ar, price, price_m, image, image_url)')
         .eq('user_id', user.id);
     final items = (data as List<dynamic>)
         .map((e) => SupabaseCartItem.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    // Recalculate discount if promo exists
     if (state is CartLoaded) {
       final s = state as CartLoaded;
       if (s.appliedPromoCode != null) {
@@ -225,6 +262,12 @@ class CartCubit extends Cubit<CartState> {
   }
 
   // ── Checkout ────────────────────────────────────────────────────────────
+  //
+  // Each cart item is mapped to the strict canonical OrderItem schema before
+  // being sent to Supabase, guaranteeing all historical and future data is
+  // consistent. The 'status' field is intentionally omitted — the DB column
+  // defaults to 'pending', and is promoted to 'paid' only by the Paymob
+  // webhook. This prevents order-status spoofing from the client.
 
   Future<void> checkout({
     String? branchName,
@@ -242,36 +285,53 @@ class CartCubit extends Cubit<CartState> {
     try {
       final double totalAmount =
           cartState.subtotal - cartState.discount - promoDiscount;
-      
-      final orderData = {
+
+      // ── Map every cart item to the strict canonical OrderItem schema ──────
+      // This is the single source of truth for what gets written to orders.items.
+      final List<Map<String, dynamic>> normalizedItems = items.map((e) {
+        final double unitPrice = e.price;
+        final int qty = e.quantity;
+        return <String, dynamic>{
+          // ── Identity ────────────────────────────────────────────────────
+          'product_id': e.productId,
+          // ── Names ──────────────────────────────────────────────────────
+          'product_name_en': e.productName,
+          'product_name_ar': e.productNameAr, // null-safe: kept as null if absent
+          // ── Pricing ────────────────────────────────────────────────────
+          'unit_price': double.parse(unitPrice.toStringAsFixed(2)),
+          'quantity': qty,
+          'total_price': double.parse((unitPrice * qty).toStringAsFixed(2)),
+          // ── Media ──────────────────────────────────────────────────────
+          'image_url': e.image.isNotEmpty ? e.image : null,
+          // ── Variants / Options ─────────────────────────────────────────
+          'selected_size': e.selectedSize,   // null if no variant
+          'selected_options': e.selectedOptions, // [] if none
+        };
+      }).toList();
+
+      final orderData = <String, dynamic>{
         'user_id': user.id,
-        'status': 'preparing',
-        'total_amount': totalAmount,
+        // ✅  No 'status' field — DB default 'pending' is applied automatically.
+        //    Status is promoted to 'paid' exclusively by the Paymob webhook.
+        'total_amount': double.parse(totalAmount.toStringAsFixed(2)),
         'branch_name': branchName,
         'promo_code': appliedPromo,
-        'discount_amount': promoDiscount,
-        'items': items.map((e) => {
-          'product_id': e.productId,
-          'product_name': e.productName,
-          'product_name_ar': e.productNameAr,
-          'product_image': e.image,
-          'total_amount': e.price,
-          'quantity': e.quantity,
-        }).toList(),
+        'discount_amount': double.parse(promoDiscount.toStringAsFixed(2)),
+        'items': normalizedItems,
         'created_at': DateTime.now().toIso8601String(),
       };
 
       await _client.from('orders').insert(orderData);
 
       await _client.from('cart').delete().eq('user_id', user.id);
-      _hive.cartBox.delete('items'); // Clear local cache too
+      _hive.cartBox.delete('items');
       emit(CartCheckedOut());
     } catch (e) {
       emit(CartError('Checkout failed: ${e.toString()}'));
     }
   }
 
-  // ── Legacy stub (kept for compatibility) ───────────────────────────────
+  // ── Clear cart ─────────────────────────────────────────────────────────
 
   Future<void> clearCart() async {
     final user = _client.auth.currentUser;
@@ -283,6 +343,56 @@ class CartCubit extends Cubit<CartState> {
       emit(const CartLoaded(items: []));
     } catch (e) {
       emit(CartError('Failed to clear cart: ${e.toString()}'));
+    }
+  }
+
+  // ── Batch Replace (Reorder Logic) ──────────────────────────────────────
+
+  Future<void> replaceCartWithItems(List<dynamic> newItems) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+
+    // We do not emit CartLoading here because we want to update seamlessly in the background
+    // if the user has already navigated away (e.g., fast reorder).
+
+    try {
+      // 1. Clear database cart
+      await _client.from('cart').delete().eq('user_id', user.id);
+
+      // 2. Prepare items for bulk insert
+      final List<Map<String, dynamic>> insertData = [];
+      for (final dynamic item in newItems) {
+        insertData.add({
+          'user_id': user.id,
+          'product_id': item.productId,
+          'quantity': item.quantity,
+          'price': item.unitPrice,
+          if (item.selectedSize != null) 'selected_size': item.selectedSize,
+          if (item.selectedOptions.isNotEmpty) 'selected_options': item.selectedOptions,
+        });
+      }
+
+      // 3. Bulk insert to Supabase
+      if (insertData.isNotEmpty) {
+        await _client.from('cart').insert(insertData);
+      }
+
+      // 4. Reload from database silently to refresh joined tables without flicker
+      final data = await _client
+          .from('cart')
+          .select('*, products(name, name_ar, price, price_m, image, image_url)')
+          .eq('user_id', user.id);
+
+      final items = (data as List<dynamic>)
+          .map((e) => SupabaseCartItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      // Emit new state exactly ONCE
+      _emitLoaded(items: items, discount: 0.0, promoCode: null);
+
+    } catch (e) {
+       // Silently fail or log if background sync fails
+       // (Avoid emitting error state if user is already on Checkout page)
     }
   }
 }

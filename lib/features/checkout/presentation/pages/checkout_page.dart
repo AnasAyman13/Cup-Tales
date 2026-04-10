@@ -12,11 +12,11 @@ import '../../../../core/routing/app_router.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/language_cubit.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/antigravity_loader.dart';
 import '../widgets/order_summary_card.dart';
 import '../widgets/payment_method_card.dart';
 import '../widgets/confirm_order_button.dart';
 import '../../../../core/models/branch.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -28,6 +28,7 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _walletController = TextEditingController();
   final TextEditingController _promoController = TextEditingController();
+  bool _isBranchPickerExpanded = false;
 
   @override
   void initState() {
@@ -40,7 +41,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final user = sl<AuthService>().currentUser;
       if (user != null) {
         // 1. Try reading from Hive cache first for an instant zero-lag experience
-        final cachedProfile = sl<HiveService>().profileBox.get('current_user') as Map?;
+        final cachedProfile =
+            sl<HiveService>().profileBox.get('current_user') as Map?;
         if (cachedProfile != null) {
           final phone = cachedProfile['phone'] as String?;
           if (phone != null && phone != 'NA' && phone.isNotEmpty) {
@@ -110,7 +112,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           builder: (context, state) {
             if (state is CheckoutProcessing) {
               return const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary));
+                child: AntigravityLoaderCore(size: 80),
+              );
             }
 
             // Logic to handle state data
@@ -156,7 +159,32 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
                         const SizedBox(height: 24),
 
-                        // --- 2. كود الخصم ---
+                        // --- 2. استلام من الفرع ---
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(context.loc.pickupFromBranch,
+                                style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary)),
+                            if (!_isBranchPickerExpanded)
+                              TextButton(
+                                onPressed: () => setState(
+                                    () => _isBranchPickerExpanded = true),
+                                child: Text(context.tr('Change', 'تغيير'),
+                                    style: const TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildBranchPicker(context, state),
+
+                        const SizedBox(height: 24),
+
+                        // --- 3. كود الخصم ---
                         Text(context.tr('Promo Code', 'كود الخصم'),
                             style: const TextStyle(
                                 fontSize: 18,
@@ -171,27 +199,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           promoError: promoErrorCode,
                           onApply: () {
                             final code = _promoController.text.trim();
-                            if (code.isNotEmpty)
+                            if (code.isNotEmpty) {
                               context
                                   .read<CheckoutCubit>()
                                   .applyPromoCode(code);
+                            }
                           },
                           onRemove: () {
                             _promoController.clear();
                             context.read<CheckoutCubit>().removePromoCode();
                           },
                         ),
-
-                        const SizedBox(height: 32),
-
-                        // --- 3. استلام من الفرع ---
-                        Text(context.loc.pickupFromBranch,
-                            style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary)),
-                        const SizedBox(height: 12),
-                        _buildBranchPicker(context, state),
 
                         const SizedBox(height: 32),
 
@@ -231,16 +249,98 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
+  // ── Branch name translation maps ─────────────────────────────────────────
+  // Used when DB branches don't have a separate name_ar/name_en column.
+  static const Map<String, String> _branchArMap = {
+    'rehab': 'فرع الرحاب',
+    'mahalla1': 'فرع المحلة 1 - طريق طنطا',
+    'mahalla2': 'فرع المحلة 2 - ش رضا حافظ',
+  };
+  static const Map<String, String> _branchEnMap = {
+    'rehab': 'Rehab Branch',
+    'mahalla1': 'Mahalla Branch 1 (Tanta Road)',
+    'mahalla2': 'Mahalla Branch 2 (Reda Hafez St)',
+  };
+  static const Map<String, String> _areaArMap = {
+    'rehab': 'القاهرة الجديدة',
+    'mahalla1': 'المحلة الكبرى',
+    'mahalla2': 'المحلة الكبرى',
+  };
+  static const Map<String, String> _areaEnMap = {
+    'rehab': 'New Cairo',
+    'mahalla1': 'El Mahalla El Kubra',
+    'mahalla2': 'El Mahalla El Kubra',
+  };
+
   Widget _buildBranchPicker(BuildContext context, CheckoutState state) {
+    if (state is CheckoutInitial && state.branches.isEmpty) {
+      return const Center(child: AntigravityLoaderCore(size: 80));
+    }
+
     final branchesList =
         state is CheckoutInitial ? state.branches : appBranches;
     final selectedBranch =
         state is CheckoutInitial ? state.selectedBranch : null;
 
+    final isEn = Localizations.localeOf(context).languageCode == 'en';
+    
+    // If not expanded, show only the selected branch
+    if (!_isBranchPickerExpanded && selectedBranch != null) {
+      final String branchName = isEn
+          ? (_branchEnMap[selectedBranch.id] ?? selectedBranch.nameEn)
+          : (_branchArMap[selectedBranch.id] ?? selectedBranch.nameAr);
+
+      final String areaName = isEn
+          ? (_areaEnMap[selectedBranch.id] ?? selectedBranch.areaEn)
+          : (_areaArMap[selectedBranch.id] ?? selectedBranch.areaAr);
+
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary, width: 2),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.storefront, color: AppColors.primary, size: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(branchName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
+                  if (areaName.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(areaName,
+                        style: TextStyle(
+                            fontSize: 13, color: Colors.grey.shade600)),
+                  ],
+                ],
+              ),
+            ),
+            const Icon(Icons.check_circle, color: AppColors.primary),
+          ],
+        ),
+      );
+    }
+
+    // Expanded View
     return Column(
       children: branchesList.map((branch) {
         final isSelected = selectedBranch?.id == branch.id;
-        final isEn = Localizations.localeOf(context).languageCode == 'en';
+
+        // Resolve name: prefer model data, fall back to translation map
+        final String branchName = isEn
+            ? (_branchEnMap[branch.id] ?? branch.nameEn)
+            : (_branchArMap[branch.id] ?? branch.nameAr);
+
+        final String areaName = isEn
+            ? (_areaEnMap[branch.id] ?? branch.areaEn)
+            : (_areaArMap[branch.id] ?? branch.areaAr);
+
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
@@ -253,14 +353,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
           child: RadioListTile<String>(
             value: branch.id,
             groupValue: selectedBranch?.id,
-            onChanged: (_) =>
-                context.read<CheckoutCubit>().selectBranch(branch),
+            onChanged: (id) {
+              if (id != null) {
+                final b = branchesList.firstWhere((b) => b.id == id);
+                context.read<CheckoutCubit>().selectBranch(b);
+                setState(() => _isBranchPickerExpanded = false);
+              }
+            },
             activeColor: AppColors.primary,
-            title: Text(isEn ? branch.nameEn : branch.nameAr,
+            title: Text(branchName,
                 style:
                     const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            subtitle: Text(isEn ? branch.areaEn : branch.areaAr,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+            subtitle: areaName.isNotEmpty
+                ? Text(areaName,
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600))
+                : null,
           ),
         );
       }).toList(),
@@ -357,7 +464,7 @@ class _PromoCodeField extends StatelessWidget {
                     hintText: context.tr('Enter promo code', 'أدخل كود الخصم'),
                     filled: true,
                     fillColor: hasApplied
-                        ? Colors.green.withOpacity(0.05)
+                        ? Colors.green.withValues(alpha: 0.05)
                         : Colors.white,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -375,7 +482,9 @@ class _PromoCodeField extends StatelessWidget {
               child: SizedBox(
                 height: 52,
                 child: isValidating
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(
+                        child: AntigravityLoaderCore(size: 24),
+                      )
                     : hasApplied
                         ? TextButton(
                             onPressed: onRemove,

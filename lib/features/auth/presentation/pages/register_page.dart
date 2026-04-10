@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import '../../../../core/widgets/antigravity_loader.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/language_cubit.dart';
 import '../../../../core/localization/language_state.dart';
@@ -31,6 +32,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
+    CustomLoadingOverlay.hide();
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -54,6 +56,12 @@ class _RegisterPageState extends State<RegisterPage> {
       resizeToAvoidBottomInset: true,
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
+          if (state is AuthLoading) {
+            CustomLoadingOverlay.show(context);
+          } else {
+            CustomLoadingOverlay.hide();
+          }
+
           // AuthGate handles navigation on AuthAuthenticated.
           // Only show errors here.
           if (state is AuthError) {
@@ -83,13 +91,13 @@ class _RegisterPageState extends State<RegisterPage> {
               top: -96,
               left: -96,
               child:
-                  _GlowBlob(size: 256, color: Colors.white.withOpacity(0.05)),
+                  _GlowBlob(size: 256, color: Colors.white.withValues(alpha: 0.05)),
             ),
             Positioned(
               bottom: -128,
               right: -128,
               child:
-                  _GlowBlob(size: 384, color: Colors.black.withOpacity(0.10)),
+                  _GlowBlob(size: 384, color: Colors.black.withValues(alpha: 0.10)),
             ),
 
             // ── Content ───────────────────────────────────────────────
@@ -109,7 +117,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.12),
+                              color: Colors.white.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(Icons.arrow_back_ios_new_rounded,
@@ -135,7 +143,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.25),
+                            color: Colors.black.withValues(alpha: 0.25),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
@@ -224,15 +232,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     // ── Create Account Button ──────────────────────────
                     BlocBuilder<AuthCubit, AuthState>(
                       builder: (context, state) {
-                        if (state is AuthLoading) {
-                          return const SizedBox(
-                            height: 64,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                  color: Colors.white),
-                            ),
-                          );
-                        }
                         return _TappableButton(
                           onTap: _register,
                           child: Container(
@@ -243,7 +242,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
+                                  color: Colors.black.withValues(alpha: 0.2),
                                   blurRadius: 16,
                                   offset: const Offset(0, 6),
                                 ),
@@ -275,7 +274,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 16,
                               offset: const Offset(0, 6),
                             ),
@@ -554,7 +553,7 @@ class _LangToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(24),
       ),
       padding: const EdgeInsets.all(3),

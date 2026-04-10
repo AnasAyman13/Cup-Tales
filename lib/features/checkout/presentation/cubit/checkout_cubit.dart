@@ -9,6 +9,9 @@ import '../../../../core/services/order_service.dart';
 import '../../../../core/services/branch_service.dart';
 import '../../../../core/services/promo_code_service.dart';
 import '../../../../core/models/branch.dart';
+import 'package:flutter/foundation.dart';
+import '../../../../core/local_storage/prefs_service.dart';
+import '../../../../core/di/injection_container.dart' as di;
 
 class CheckoutCubit extends Cubit<CheckoutState> {
   final CartCubit _cartCubit;
@@ -29,9 +32,22 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     this._promoCodeService,
   ) : super(CheckoutInitial(
           branches: appBranches,
-          selectedBranch: appBranches.isNotEmpty ? appBranches.first : null,
+          selectedBranch: _getInitialBranch(appBranches),
         )) {
     loadBranches();
+  }
+
+  static Branch? _getInitialBranch(List<Branch> branches) {
+    if (branches.isEmpty) return null;
+    try {
+      final prefs = di.sl<PrefsService>();
+      final savedId = prefs.selectedBranchId;
+      if (savedId != null) {
+        return branches.firstWhere((b) => b.id == savedId,
+            orElse: () => branches.first);
+      }
+    } catch (_) {}
+    return branches.first;
   }
 
   static const int _visaIntegrationId = 5577397;
@@ -61,6 +77,9 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   void selectBranch(Branch branch) {
     if (state is CheckoutInitial) {
       emit((state as CheckoutInitial).copyWith(selectedBranch: branch));
+      try {
+        di.sl<PrefsService>().setSelectedBranchId(branch.id);
+      } catch (_) {}
     }
   }
 
@@ -177,17 +196,17 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
         if (selectedMethod == 'Visa') {
           const int iframeId = 1014745;
-          print('DEBUG: Visa selected, using Iframe URL ($iframeId)');
+          debugPrint('DEBUG: Visa selected, using Iframe URL ($iframeId)');
           redirectionUrl = 'https://accept.paymob.com/api/acceptance/iframes/$iframeId?payment_token=$paymentToken';
         } else {
-          print('DEBUG: Wallet selected, calling initiatePayment');
+          debugPrint('DEBUG: Wallet selected, calling initiatePayment');
           redirectionUrl = await _paymobService.initiatePayment(
             paymentToken: paymentToken,
             phone: phoneNumber,
           );
         }
 
-        print('DEBUG: Final Redirection URL ready: $redirectionUrl');
+        debugPrint('DEBUG: Final Redirection URL ready: $redirectionUrl');
 
         if (redirectionUrl.isEmpty) {
           throw Exception('Failed to get redirection URL from Paymob for $selectedMethod.');
@@ -261,9 +280,25 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
       final response = await _orderService.saveOrder(
         userId: user.id,
-        items: items.map((e) => e.toJson()).toList(),
+        // Build normalized canonical items — same schema as cart_cubit.checkout().
+        // ✅ No 'status' field — the DB default 'pending' is applied automatically.
+        //    Status is promoted to 'paid' exclusively by the Paymob webhook.
+        items: items.map((e) {
+          final double unitPrice = e.price;
+          final int qty = e.quantity;
+          return <String, dynamic>{
+            'product_id': e.productId,
+            'product_name_en': e.productName,
+            'product_name_ar': e.productNameAr,
+            'image_url': e.image.isNotEmpty ? e.image : null,
+            'unit_price': double.parse(unitPrice.toStringAsFixed(2)),
+            'quantity': qty,
+            'total_price': double.parse((unitPrice * qty).toStringAsFixed(2)),
+            'selected_size': e.selectedSize,
+            'selected_options': e.selectedOptions,
+          };
+        }).toList(),
         total: totalAmount,
-        status: 'Paid',
         branchName: branchName,
         appliedPromo: appliedPromo,
         promoDiscount: promoDiscount,
@@ -274,10 +309,10 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         _promoCodeService.incrementUsage(appliedPromo);
       }
 
-      print('DEBUG: Order successfully saved with ID: $response');
+      debugPrint('DEBUG: Order successfully saved with ID: $response');
       return response;
     } catch (e) {
-      print('DEBUG: Error saving order to Supabase: $e');
+      debugPrint('DEBUG: Error saving order to Supabase: $e');
       rethrow;
     }
   }

@@ -142,7 +142,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.2),
+                          color: AppColors.primary.withValues(alpha: 0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         )
@@ -243,7 +243,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -400,8 +400,47 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      // Add To Cart Button
+                      // Add To Cart Button (Icon only)
                       Expanded(
+                        flex: 1,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            side: const BorderSide(color: AppColors.primary, width: 2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: _selectedSize == null
+                              ? null
+                              : () {
+                                  context.read<CartCubit>().addToCart(
+                                        productId: widget.product.id,
+                                        productName: widget.product.name,
+                                        price: _availableSizes[_selectedSize] ??
+                                            0.0,
+                                        image: widget.product.imageUrl,
+                                        quantity: _quantity,
+                                        selectedSize: _selectedSize,
+                                      );
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(context.loc.addedToCart),
+                                      backgroundColor: Colors.green,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                },
+                          child: const Icon(Icons.add_shopping_cart, size: 24),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Buy Now Button
+                      Expanded(
+                        flex: 2,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
@@ -422,21 +461,14 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                             0.0,
                                         image: widget.product.imageUrl,
                                         quantity: _quantity,
+                                        selectedSize: _selectedSize,
                                       );
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(context.loc.addedToCart),
-                                      backgroundColor: Colors.green,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/cart');
                                 },
                           child: Text(
-                            context.loc.addToCart,
+                            context.tr('Buy Now', 'اشتري الآن'),
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

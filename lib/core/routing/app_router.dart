@@ -54,8 +54,8 @@ class AppRouter {
 
     switch (settings.name) {
       case splash:
-        debugPrint('[AppRouter] Yielding SplashPage');
-        return MaterialPageRoute(builder: (_) => const SplashPage());
+        debugPrint('[AppRouter] Yielding AnimatedSplashPage');
+        return MaterialPageRoute(builder: (_) => const AnimatedSplashPage());
 
       case onboarding:
         return MaterialPageRoute(builder: (_) => const OnboardingPage());

@@ -50,6 +50,10 @@ dependencies:
   firebase_core: ^4.5.0
   http: ^1.6.0
   webview_flutter: ^4.13.1
+  app_settings: ^5.1.1
+  path_parsing: ^1.1.0
+  path_drawing: ^1.0.1
+  svg_path_parser: ^1.1.2
 
 dev_dependencies:
   flutter_test:

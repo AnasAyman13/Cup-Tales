@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/supabase_cart_item.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
+import '../../../../core/widgets/antigravity_loader.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/language_cubit.dart';
+import '../../../../core/utils/translation_helper.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -44,8 +46,8 @@ class _CartPageState extends State<CartPage> {
           if (state is CartCheckedOut) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(context.tr('Order placed successfully!',
-                    'تم تأكيد الطلب بنجاح!')),
+                content: Text(context.tr(
+                    'Order placed successfully!', 'تم تأكيد الطلب بنجاح!')),
                 backgroundColor: Colors.green,
                 behavior: SnackBarBehavior.floating,
               ),
@@ -67,7 +69,7 @@ class _CartPageState extends State<CartPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CircularProgressIndicator(color: _primaryColor),
+                  const AntigravityLoaderCore(size: 80),
                   const SizedBox(height: 16),
                   Text(
                     state is CartCheckingOut
@@ -112,8 +114,6 @@ class _CartPageState extends State<CartPage> {
                       padding: const EdgeInsets.all(20),
                       children: [
                         ...state.items.map((item) => _CartItemCard(item: item)),
-                        const SizedBox(height: 20),
-                        _PromoCodeInput(),
                       ],
                     ),
                   ),
@@ -166,8 +166,33 @@ class _CartItemCard extends StatelessWidget {
 
   const _CartItemCard({required this.item});
 
+  String _sizeLabel(BuildContext context, String? size) {
+    if (size == null || size.trim().isEmpty) {
+      return context.loc.isAr ? 'وسط' : 'Medium';
+    }
+    final isAr = context.loc.isAr;
+    switch (size.toUpperCase()) {
+      case 'S':
+        return isAr ? 'صغير' : 'Small';
+      case 'M':
+        return isAr ? 'وسط' : 'Medium';
+      case 'L':
+        return isAr ? 'كبير' : 'Large';
+      case 'XL':
+        return isAr ? 'إكس لارج' : 'X-Large';
+      default:
+        return size;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final size = _sizeLabel(context, item.selectedSize);
+    final options = item.selectedOptions;
+    final optionStr = options.isNotEmpty
+        ? ' [${options.map((o) => TranslationHelper.translateOption(context, o)).join(', ')}]'
+        : '';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -176,7 +201,7 @@ class _CartItemCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -190,7 +215,7 @@ class _CartItemCard extends StatelessWidget {
             height: 70,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: _primaryColor.withOpacity(0.1),
+              color: _primaryColor.withValues(alpha: 0.1),
             ),
             child: item.image.isNotEmpty
                 ? ClipRRect(
@@ -212,14 +237,35 @@ class _CartItemCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.productName,
+                  TranslationHelper.translateProductName(
+                    context,
+                    item.productName,
+                    item.productNameAr,
+                  ),
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 15),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 2),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '$size$optionStr',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _primaryColor,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text('\$${item.price.toStringAsFixed(2)}',
+                Text('${item.price.toStringAsFixed(2)} ${context.loc.egp}',
                     style: TextStyle(color: Colors.grey.shade600)),
                 const SizedBox(height: 8),
                 Row(
@@ -273,7 +319,7 @@ class _QtyButton extends StatelessWidget {
         width: 30,
         height: 30,
         decoration: BoxDecoration(
-          color: const Color(0xFF2D3194).withOpacity(0.1),
+          color: const Color(0xFF2D3194).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, size: 16, color: const Color(0xFF2D3194)),
@@ -311,19 +357,20 @@ class _OrderSummary extends StatelessWidget {
         children: [
           _SummaryRow(
               label: context.tr('Subtotal', 'المجموع الفرعي'),
-              value: '\$${subtotal.toStringAsFixed(2)}'),
+              value: '${subtotal.toStringAsFixed(2)} ${context.loc.egp}'),
           if (discount > 0) ...[
             const SizedBox(height: 6),
             _SummaryRow(
               label: context.tr('Discount', 'الخصم'),
-              value: '-\$${discount.toStringAsFixed(2)}',
+              value: '- ${discount.toStringAsFixed(2)} ${context.loc.egp}',
               valueColor: Colors.green,
             ),
           ],
           const Divider(height: 24),
           _SummaryRow(
             label: context.tr('Total', 'الإجمالي'),
-            value: '\$${(total > 0 ? total : 0.0).toStringAsFixed(2)}',
+            value:
+                '${(total > 0 ? total : 0.0).toStringAsFixed(2)} ${context.loc.egp}',
             bold: true,
             valueColor: _primaryColor,
           ),

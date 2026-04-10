@@ -12,6 +12,7 @@ import '../../../products/presentation/widgets/products_section.dart';
 import '../../../categories/presentation/cubit/categories_cubit.dart';
 import '../../../products/presentation/cubit/products_cubit.dart';
 import '../../../../core/di/injection_container.dart' as di;
+import '../../../../core/widgets/antigravity_loader.dart';
 import '../widgets/animated_banners.dart';
 
 class HomePage extends StatelessWidget {
@@ -86,7 +87,7 @@ class HomePage extends StatelessWidget {
         body: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
             if (state is HomeLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: AntigravityLoaderCore(size: 80.0));
             } else if (state is HomeLoaded) {
               return SingleChildScrollView(
                 child: Column(

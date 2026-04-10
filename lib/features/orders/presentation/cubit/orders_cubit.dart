@@ -8,6 +8,7 @@ import '../../../../core/di/injection_container.dart' as di;
 import 'orders_state.dart';
 import '../../domain/entities/order_entity.dart';
 import '../../domain/entities/order_item_entity.dart';
+import 'package:flutter/foundation.dart';
 
 class OrdersCubit extends Cubit<OrdersState> {
   late final GetUserOrdersUseCase _getUserOrders;
@@ -42,16 +43,19 @@ class OrdersCubit extends Cubit<OrdersState> {
           schema: 'public',
           table: 'orders',
           callback: (payload) {
-            print(
+            debugPrint(
                 'DEBUG: ANY change on orders table: ${payload.eventType} - ${payload.newRecord}');
             _fetchOrdersOnly();
           },
         );
 
     _channel!.subscribe((status, [error]) {
-      print('DEBUG: Channel status: $status error: $error');
+      debugPrint('DEBUG: Channel status: $status error: $error');
     });
   }
+
+  // ── Hive cache helpers ────────────────────────────────────────────────────
+  // Canonical keys are used exclusively — legacy keys are never written back.
 
   void _loadFromCache() {
     if (!_hive.ordersBox.isOpen) return;
@@ -60,26 +64,48 @@ class OrdersCubit extends Cubit<OrdersState> {
     if (cached != null && cached is List) {
       final orders = cached.map((e) {
         final map = Map<String, dynamic>.from(e);
+
         final itemsList = (map['items'] as List? ?? []).map((i) {
           final itemMap = Map<String, dynamic>.from(i);
+          final int qty = (itemMap['quantity'] as num? ?? 1).toInt();
+          final double unit =
+              ((itemMap['unit_price'] ?? itemMap['price'] ?? 0.0) as num)
+                  .toDouble();
           return OrderItemEntity(
-            productId: itemMap['product_id'] ?? '',
-            productName: itemMap['product_name'] ?? '',
-            productNameAr: itemMap['product_name_ar'],
-            productImage: itemMap['product_image'] ?? '',
-            quantity: itemMap['quantity'] ?? 1,
-            price: ((itemMap['price'] ?? itemMap['total_amount'] ?? 0.0) as num).toDouble(),
+            productId: itemMap['product_id']?.toString() ?? '',
+            productNameEn: itemMap['product_name_en'] as String? ??
+                itemMap['product_name'] as String? ??
+                'Unknown',
+            productNameAr: itemMap['product_name_ar'] as String?,
+            imageUrl: itemMap['image_url'] as String? ??
+                itemMap['image'] as String? ??
+                itemMap['product_image'] as String?,
+            unitPrice: unit,
+            quantity: qty,
+            totalPrice:
+                ((itemMap['total_price'] ?? itemMap['total_amount']) as num?)
+                        ?.toDouble() ??
+                    double.parse((unit * qty).toStringAsFixed(2)),
+            selectedSize: itemMap['selected_size'] as String?,
+            selectedOptions: (itemMap['selected_options'] is List)
+                ? (itemMap['selected_options'] as List)
+                    .map((o) => o?.toString() ?? '')
+                    .where((s) => s.isNotEmpty)
+                    .toList()
+                : [],
           );
         }).toList();
 
         return OrderEntity(
-          id: map['id'],
-          userId: map['user_id'],
+          id: map['id'].toString(),
+          userId: map['user_id'] as String,
           items: itemsList,
           totalAmount: (map['total_amount'] as num).toDouble(),
-          status: map['status'],
+          status: map['status'] as String? ?? 'pending',
           branchName: map['branch_name'] as String? ?? '',
-          createdAt: DateTime.parse(map['created_at']),
+          promoCode: map['promo_code'] as String?,
+          discountAmount: ((map['discount_amount'] ?? 0.0) as num).toDouble(),
+          createdAt: DateTime.parse(map['created_at'] as String),
         );
       }).toList();
       emit(OrdersLoaded(orders));
@@ -94,21 +120,28 @@ class OrdersCubit extends Cubit<OrdersState> {
               'items': e.items
                   .map((i) => {
                         'product_id': i.productId,
-                        'product_name': i.productName,
+                        'product_name_en': i.productNameEn,
                         'product_name_ar': i.productNameAr,
-                        'product_image': i.productImage,
+                        'image_url': i.imageUrl,
+                        'unit_price': i.unitPrice,
                         'quantity': i.quantity,
-                        'total_amount': i.price,
+                        'total_price': i.totalPrice,
+                        'selected_size': i.selectedSize,
+                        'selected_options': i.selectedOptions,
                       })
                   .toList(),
               'total_amount': e.totalAmount,
               'status': e.status,
               'branch_name': e.branchName,
+              'promo_code': e.promoCode,
+              'discount_amount': e.discountAmount,
               'created_at': e.createdAt.toIso8601String(),
             })
         .toList();
     _hive.ordersBox.put('list', data);
   }
+
+  // ── Public API ────────────────────────────────────────────────────────────
 
   Future<void> loadOrders() async {
     await _fetchOrdersOnly();
@@ -133,7 +166,7 @@ class OrdersCubit extends Cubit<OrdersState> {
 
     try {
       final orders = await _getUserOrders(user.id);
-      print('DEBUG: Fetched ${orders.length} orders from Supabase');
+      debugPrint('DEBUG: Fetched ${orders.length} orders from Supabase');
       _saveToCache(orders);
       emit(OrdersLoaded(orders));
     } catch (e) {

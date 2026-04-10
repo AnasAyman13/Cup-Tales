@@ -8,6 +8,7 @@ import '../../../../core/localization/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import 'package:app_settings/app_settings.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -140,7 +141,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.primary,
                             backgroundColor:
-                                AppColors.primary.withOpacity(0.05),
+                                AppColors.primary.withValues(alpha: 0.05),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -165,7 +166,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           border: Border.all(color: Colors.grey.shade100),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: 0.02),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -191,8 +192,9 @@ class _ProfilePageState extends State<ProfilePage> {
                               title: context.loc.notifications,
                               subtitle: context.loc.notificationsSubtitle,
                               onTap: () {
-                                Navigator.pushNamed(
-                                    context, AppRouter.notifications);
+                                AppSettings.openAppSettings(
+                                  type: AppSettingsType.notification,
+                                );
                               },
                             ),
                           ],
@@ -209,7 +211,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           border: Border.all(color: Colors.grey.shade100),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: 0.02),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -251,7 +253,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               Border.all(color: Colors.red.shade100, width: 2),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.red.shade50.withOpacity(0.5),
+                              color: Colors.red.shade50.withValues(alpha: 0.5),
                               blurRadius: 12,
                               offset: const Offset(0, 6),
                             ),

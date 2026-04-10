@@ -7,6 +7,7 @@ import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/language_cubit.dart';
 import '../../../../core/localization/language_state.dart';
 import '../../../../core/localization/app_language.dart';
+import '../../../../core/widgets/antigravity_loader.dart';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -31,6 +32,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
+    // Safety: ensure global loader is hidden if we leave the page abruptly
+    CustomLoadingOverlay.hide();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -50,6 +53,12 @@ class _LoginPageState extends State<LoginPage> {
       resizeToAvoidBottomInset: true,
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
+          if (state is AuthLoading) {
+            CustomLoadingOverlay.show(context);
+          } else {
+            CustomLoadingOverlay.hide();
+          }
+
           if (state is AuthAuthenticated) {
             // Explicit navigation fallback to bypass any reactive lag in AuthGate.
             Navigator.pushReplacementNamed(context, AppRouter.home);

@@ -29,7 +29,7 @@ class PromoCodeService {
   Future<PromoResult> validate(String code, double subtotal) async {
     try {
       final trimmedCode = code.trim();
-      print('DEBUG: Querying code: $trimmedCode');
+      debugPrint('DEBUG: Querying code: $trimmedCode');
 
       // Case-insensitive lookup
       final data = await _client
@@ -38,10 +38,10 @@ class PromoCodeService {
           .ilike('code', trimmedCode)
           .maybeSingle();
 
-      print('DEBUG: Supabase response: $data');
+      debugPrint('DEBUG: Supabase response: $data');
 
       if (data == null) {
-        print('DEBUG: Request returned null. Check RLS SELECT policy.');
+        debugPrint('DEBUG: Request returned null. Check RLS SELECT policy.');
         return const PromoInvalid('الكود غير صحيح');
       }
 

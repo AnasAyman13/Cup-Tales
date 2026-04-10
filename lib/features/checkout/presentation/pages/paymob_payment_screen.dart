@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/routing/app_router.dart';
 import '../cubit/checkout_cubit.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
+import '../../../../core/widgets/antigravity_loader.dart';
 
 class PaymobPaymentScreen extends StatefulWidget {
   final String url;
@@ -32,11 +33,11 @@ class _PaymobPaymentScreenState extends State<PaymobPaymentScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (url) {
-            print('DEBUG: WebView started loading URL: $url');
+            debugPrint('DEBUG: WebView started loading URL: $url');
             setState(() => _isLoading = true);
           },
           onPageFinished: (url) {
-            print('DEBUG: WebView finished loading URL: $url');
+            debugPrint('DEBUG: WebView finished loading URL: $url');
             
             // Aggressively hide Mastercard/Visa logos, card icons, and the Checkout header
             _controller.runJavaScript("""
@@ -76,7 +77,7 @@ class _PaymobPaymentScreenState extends State<PaymobPaymentScreen> {
                 context: context,
                 barrierDismissible: false,
                 builder: (context) => const Center(
-                  child: CircularProgressIndicator(),
+                  child: AntigravityLoaderCore(size: 80),
                 ),
               );
 
@@ -138,7 +139,7 @@ class _PaymobPaymentScreenState extends State<PaymobPaymentScreen> {
           WebViewWidget(controller: _controller),
           if (_isLoading)
             const Center(
-              child: CircularProgressIndicator(color: Color(0xFF2D3194)),
+              child: AntigravityLoaderCore(size: 80),
             ),
         ],
       ),
