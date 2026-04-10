@@ -37,7 +37,7 @@ const SUPABASE_URL: string =
   process.env.SUPABASE_URL ?? 'https://xidugzdzigyezserlhlj.supabase.co';
 
 const SUPABASE_SERVICE_ROLE_KEY: string =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpZHVnemR6aWd5ZXpzZXJsaGxqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjcyMzU1OSwiZXhwIjoyMDg4Mjk5NTU5fQ.WAOqIgeiWqHluUt8lJIS7vpRvelsdtN9RG7FyMAl7OY';
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'YOUR_SERVICE_ROLE_KEY';
 
 // Set to true for a dry-run (logs changes without writing to DB)
 const DRY_RUN: boolean = process.env.DRY_RUN === 'true' ? true : false;
